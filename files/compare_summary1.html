@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive PDF Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      padding-top: 20px;
+    }
+
+    .gallery {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .pdf-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pdf-frame {
+      width: 1000px;
+      height: 530px;
+      border: 1px solid black;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }
+
+    .pdf-frame1 {
+      width: 450px;
+      height: 600px;
+      border: 1px solid black;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+      overflow: hidden;
+    }    
+
+    .pdf-frame:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .caption {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #000;
+      font-weight: bold;
+    }
+    .caption1 {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #FF0000;
+      font-weight: bold;
+    }
+    
+    .text-container {
+      text-align: center;
+      background-color: #f0f0f0;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="gallery">
+    <div class="pdf-container">
+      <iframe class="pdf-frame" src="html/3compare.pdf" title="PDF файл"></iframe>
+    </div>
+    <!-- <div class="pdf-container">
+      <iframe class="pdf-frame1" src="html/краткая аннотация.pdf#toolbar=0" title="TrackTrack"></iframe>
+      <div class="caption">Краткая суммаризация<br>(30-50 слов)</div>
+    </div> -->
+  </div>
+
+  <div class="text-container">
+    <p><b>Краткая суммаризация изменении</b></p>
+    Новая редакция нормативного акта включает уточнения относительно порядка взаимодействия участников синдиката кредиторов и внешних инвесторов, предоставляющих финансирование. Введены новые положения, регулирующие передачу прав и обязанностей между участниками синдиката и финансовыми организациями, определены сроки и условия финансирования, обязанности внешнего инвестора по своевременной передаче денежных средств в оговоренных случаях. Упразднены устаревшие нормы, касающиеся управления залогом и обязательств участников синдикатов, заменённые новыми требованиями к обязательствам внешних участников. Исключены дублирующиеся положения и определён порядок действий при наступлении кризисных ситуаций, таких как банкротство или отзыв банковской лицензии. В предыдущей версии основная дата была неизвестна, в новой версии это дата: по истечении десяти дней после дня его официального опубликования
+  </div>
+</body>
+</html>
