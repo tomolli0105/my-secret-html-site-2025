@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>ИИ TrackTrack UI</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      height: 100%;
+    }
+
+    body {
+      background: url('files/html/ready.jpg') no-repeat top center;
+      background-size: cover;
+    }
+
+    .menu-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 38px;
+      background-color: #2e2e2e;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 14px;
+    }
+
+    .menu-item {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .menu-item:hover {
+      background-color: #505050;
+    }
+
+    .toolbar {
+      position: absolute;
+      top: 38px;
+      left: 0;
+      right: 0;
+      min-height: 120px;
+      background-color: #3c3c3c;
+      display: flex;
+      align-items: flex-start;
+      padding: 10px 12px;
+      color: white;
+      font-size: 13px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .toolbar-option {
+      width: 100px;
+      min-height: 100px;
+      background-color: #545454;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      transition: background-color 0.3s ease;
+      position: relative;
+    }
+
+    .toolbar-option:hover {
+      background-color: #666;
+    }
+
+    .toolbar-option img {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 6px;
+    }
+
+    .sub-options {
+      position: absolute;
+      top: 110px;
+      left: 0;
+      background-color: #444;
+      border-radius: 6px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      width: 200px;
+      z-index: 10;
+    }
+
+    .sub-option {
+      background-color: #666;
+      padding: 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .sub-option:hover {
+      background-color: #888;
+    }
+
+    #tracktrack-options {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top menu bar -->
+  <div class="menu-bar">
+    <div class="menu-item">Файл</div>
+    <div class="menu-item">Главная</div>
+    <div class="menu-item">Вставка</div>
+    <div class="menu-item">Рисование</div>
+    <div class="menu-item">Макет</div>
+    <div class="menu-item">Ссылки</div>
+    <div class="menu-item">Совместная работа</div>
+    <div class="menu-item">Защита</div>
+    <div class="menu-item">Вид</div>
+    <div class="menu-item">Плагины</div>
+    <div class="menu-item" onclick="showTrackTrack()">ИИ TrackTrack</div>
+  </div>
+
+  <!-- Toolbar area -->
+  <div class="toolbar" id="toolbar"></div>
+
+  <!-- Hidden ИИ TrackTrack options -->
+  <div id="tracktrack-options" style="display: none;">
+    <!-- Распознавание из PDF -->
+    <div class="toolbar-option" id="pdf-button">
+      <img src="files/html/icons/ocr.png" alt="OCR Icon">
+      <div>Распознавание</div>
+      <div class="sub-options" id="pdf-sub-options">
+        <div class="sub-option" onclick="openIndex()">Распознавать текст на картинках (jpg/png)</div>
+        <div class="sub-option" onclick="openIndexPdf()">Распознавать текст на отсканированных документах (pdf)</div>
+      </div>
+    </div>
+
+    <!-- ИИ Суммаризация -->
+    <!-- <div class="toolbar-option" onclick="openSummarization()">
+      <img src="html/icons/summarize.png" alt="Summarize Icon">
+      <div>ИИ<br>Суммаризация</div>
+    </div> -->
+
+    <div class="toolbar-option" id="summarization">
+        <img src="files/html/icons/summarize.png" alt="Summarize Icon">
+        <div>Аннотирование</div>
+        <div class="sub-options" id="summarization-options">
+          <div class="sub-option" onclick="openKrat()">Краткая аннотация</div>
+          <div class="sub-option" onclick="openDetal()">Детальная аннотация</div>
+        </div>
+      </div>    
+
+    <!-- ИИ Сравнение -->
+    <div class="toolbar-option" id="compare-button">
+      <img src="files/html/icons/compare.png" alt="Compare Icon">
+      <div>Сравнение</div>
+      <div class="sub-options" id="compare-sub-options">
+        <div class="sub-option" onclick="openCompare1()">Сравнительная редакция в одном документе</div>
+        <div class="sub-option" onclick="openCompare2()">Сравнение в двух экранах</div>
+        <div class="sub-option" onclick="openCompare3()">Таблица изменений</div>
+        <div class="sub-option" onclick="openKratCh()">Краткая аннотация к изменениям</div>
+        <div class="sub-option" onclick="openDetalCh()">Детальная аннотация к изменениям</div>
+      </div>
+    </div>
+
+    <!-- ИИ Суммаризация изменений -->
+
+    <!-- <div class="toolbar-option" id="summarization-changes">
+        <img src="html/icons/changes.png" alt="Changes Icon">
+        <div>Суммаризация<br>изменений</div>
+        <div class="sub-options" id="summarization-changes-options">
+          <div class="sub-option" onclick="openKratCh()">Краткая суммаризация</div>
+          <div class="sub-option" onclick="openDetalCh()">Детальная суммаризация</div>
+        </div>
+    </div>      -->
+
+
+    <div class="toolbar-option" id="avtonal" onclick="openavtonal()">
+        <img src="files/html/icons/document-edit.png" alt="Auto Edit Icon">
+        <div>Автоматическое<br>наложение</div>
+        <!-- <div class="sub-options" id="avtonal-options">
+          <div class="sub-option" onclick="openavtonal()">Автоматическое<br>наложение</div>
+        </div> -->
+    </div>      
+
+  </div>
+
+  <script>
+    function showTrackTrack() {
+      const toolbar = document.getElementById("toolbar");
+      const options = document.getElementById("tracktrack-options");
+
+      toolbar.innerHTML = "";
+      Array.from(options.children).forEach(opt => {
+        toolbar.appendChild(opt.cloneNode(true));
+      });
+
+      // Re-bind dropdown behavior
+      setTimeout(() => {
+        // PDF dropdown
+        const pdfBtn = document.getElementById("toolbar").querySelector("#pdf-button");
+        const pdfOpts = pdfBtn.querySelector(".sub-options");
+        pdfBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          toggleDropdown(pdfOpts);
+        });
+
+        // Summarization
+        const summi = document.getElementById("toolbar").querySelector("#summarization");
+        const summi0 = summi.querySelector(".sub-options");
+        summi.addEventListener("click", e => {
+          e.stopPropagation();
+          toggleDropdown(summi0);
+        });
+        
+        // Compare dropdown
+        const compareBtn = document.getElementById("toolbar").querySelector("#compare-button");
+        const compareOpts = compareBtn.querySelector(".sub-options");
+        compareBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          toggleDropdown(compareOpts);
+        });
+
+        // Summarization Changes
+        const summich = document.getElementById("toolbar").querySelector("#summarization-changes");
+        const summi0ch = summich.querySelector(".sub-options");
+        summich.addEventListener("click", e => {
+          e.stopPropagation();
+          toggleDropdown(summi0ch);
+        });        
+
+        // AvtoNal
+        const avto_nal = document.getElementById("toolbar").querySelector("#avtonal");
+        const avto0nal = avto_nal.querySelector(".sub-options");
+        avto_nal.addEventListener("click", e => {
+          e.stopPropagation();
+          toggleDropdown(avto0nal);
+        });            
+
+        // Close all dropdowns on outside click
+        document.addEventListener("click", () => {
+          document.querySelectorAll(".sub-options").forEach(el => el.style.display = "none");
+        });
+      }, 0);
+    }
+
+    function toggleDropdown(element) {
+      const isVisible = element.style.display === "flex";
+      document.querySelectorAll(".sub-options").forEach(el => el.style.display = "none");
+      element.style.display = isVisible ? "none" : "flex";
+    }
+
+    function openIndex() {
+      window.location.href = "files/1_index.html";
+    }
+
+    function openIndexPdf() {
+      window.location.href = "files/index_pdf.html";
+    }
+
+    function openKrat() {
+      window.location.href = "files/index2summary.html";
+    }
+
+    function openDetal() {
+      window.location.href = "files/index3summary.html";
+    }    
+
+    // function openSummarization() {
+    //   window.open("html/2summarize.png", "_blank");
+    // }
+
+    function openCompare1() {
+        window.location.href = "files/compare1.html";
+    }
+
+    function openCompare2() {
+        window.location.href = "files/compare_output_flipped.html";
+    }
+
+    function openCompare3() {
+        window.location.href = "files/compare2.html";
+    }
+
+    function openKratCh() {
+      window.location.href = "files/compare_summary1.html";
+    }
+
+    function openDetalCh() {
+      window.location.href = "files/compare_summary2.html";
+    }    
+
+    function openavtonal() {
+      window.location.href = "files/avtonal.html";
+    }        
+
+  </script>
+</body>
+</html>
