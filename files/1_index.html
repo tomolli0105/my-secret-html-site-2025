@@ -25,16 +25,17 @@
       align-items: center;
     }
 
-    .pdf-frame {
+    .pdf-frame, .pdf-canvas-container {
       width: 472px;
       height: 610px;
       border: 1px solid black;
       border-radius: 10px;
       transition: transform 0.3s ease;
       overflow: hidden;
+      background: white;
     }
 
-    .pdf-frame:hover {
+    .pdf-frame:hover, .pdf-canvas-container:hover {
       transform: scale(1.02);
       z-index: 10;
     }
@@ -45,38 +46,72 @@
       color: #000;
       font-weight: bold;
     }
+
     .caption1 {
       margin-top: 10px;
       font-size: 16px;
       color: #FF0000;
       font-weight: bold;
     }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+      display: block;
+      background: white;
+    }
   </style>
 </head>
 <body>
 
   <div class="gallery">
+    <!-- Left PDF/JPG -->
     <div class="pdf-container">
       <iframe class="pdf-frame" src="html/pdf_img.pdf#toolbar=0" title="PDF файл"></iframe>
       <div class="caption">Отсканированная страница<br>(JPG)</div>
     </div>
+
+    <!-- Middle PDF using PDF.js -->
     <div class="pdf-container">
-      <iframe class="pdf-frame" src="html/pdf_tracktrack.pdf#toolbar=0" title="TrackTrack"></iframe>
+      <div class="pdf-canvas-container">
+        <canvas id="pdf-canvas"></canvas>
+      </div>
       <div class="caption">TrackTrack</div>
     </div>
-    <!-- <div class="pdf-container"></div>
-      <iframe class="pdf-frame" src="html/pdf3.pdf#toolbar=0" title="WPS офис"></iframe>
-      <div class="caption">Р7 офис</div>
-    </div> -->
+
+    <!-- Right PDF -->
     <div class="pdf-container">
-        <iframe class="pdf-frame" src="html/pdf_r7.pdf#toolbar=0" title="R7"></iframe>
-        <div class="caption">Р7 офис</div>
+      <iframe class="pdf-frame" src="html/pdf_r7.pdf#toolbar=0" title="R7"></iframe>
+      <div class="caption">Р7 офис</div>
     </div>
-    <!-- <div class="pdf-container">
-      <iframe class="pdf-frame" src="html/pdf_wps.pdf#toolbar=0" title="WPS офис"></iframe>
-      <div class="caption">WPS офис</div>
-    </div> -->
   </div>
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    const url = 'html/pdf_tracktrack.pdf'; // middle PDF
+
+    const loadingTask = pdfjsLib.getDocument(url);
+    loadingTask.promise.then(function(pdf) {
+      return pdf.getPage(1);
+    }).then(function(page) {
+      const container = document.querySelector('.pdf-canvas-container');
+      const canvas = document.getElementById('pdf-canvas');
+      const context = canvas.getContext('2d');
+
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = container.clientWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+
+      canvas.width = scaledViewport.width;
+      canvas.height = scaledViewport.height;
+
+      page.render({
+        canvasContext: context,
+        viewport: scaledViewport
+      });
+    });
+  </script>
 
 </body>
 </html>
