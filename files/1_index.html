@@ -65,23 +65,27 @@
 <body>
 
   <div class="gallery">
-    <!-- Left PDF/JPG -->
+    <!-- Left PDF (was image JPG) -->
     <div class="pdf-container">
-      <iframe class="pdf-frame" src="html/pdf_img.pdf#toolbar=0" title="PDF файл"></iframe>
+      <div class="pdf-canvas-container">
+        <canvas id="pdf-canvas-left"></canvas>
+      </div>
       <div class="caption">Отсканированная страница<br>(JPG)</div>
     </div>
 
-    <!-- Middle PDF using PDF.js -->
+    <!-- Middle PDF -->
     <div class="pdf-container">
       <div class="pdf-canvas-container">
-        <canvas id="pdf-canvas"></canvas>
+        <canvas id="pdf-canvas-middle"></canvas>
       </div>
       <div class="caption">TrackTrack</div>
     </div>
 
     <!-- Right PDF -->
     <div class="pdf-container">
-      <iframe class="pdf-frame" src="html/pdf_r7.pdf#toolbar=0" title="R7"></iframe>
+      <div class="pdf-canvas-container">
+        <canvas id="pdf-canvas-right"></canvas>
+      </div>
       <div class="caption">Р7 офис</div>
     </div>
   </div>
@@ -89,26 +93,30 @@
   <!-- PDF.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    const url = 'html/pdf_tracktrack.pdf'; // middle PDF
+    const pdfs = [
+      { url: 'html/pdf_img.pdf', canvasId: 'pdf-canvas-left' },
+      { url: 'html/pdf_tracktrack.pdf', canvasId: 'pdf-canvas-middle' },
+      { url: 'html/pdf_r7.pdf', canvasId: 'pdf-canvas-right' }
+    ];
 
-    const loadingTask = pdfjsLib.getDocument(url);
-    loadingTask.promise.then(function(pdf) {
-      return pdf.getPage(1);
-    }).then(function(page) {
-      const container = document.querySelector('.pdf-canvas-container');
-      const canvas = document.getElementById('pdf-canvas');
-      const context = canvas.getContext('2d');
+    pdfs.forEach(({ url, canvasId }) => {
+      const loadingTask = pdfjsLib.getDocument(url);
+      loadingTask.promise.then(pdf => pdf.getPage(1)).then(page => {
+        const canvas = document.getElementById(canvasId);
+        const container = canvas.parentElement;
+        const context = canvas.getContext('2d');
 
-      const viewport = page.getViewport({ scale: 1 });
-      const scale = container.clientWidth / viewport.width;
-      const scaledViewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: 1 });
+        const scale = container.clientWidth / viewport.width;
+        const scaledViewport = page.getViewport({ scale });
 
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
 
-      page.render({
-        canvasContext: context,
-        viewport: scaledViewport
+        page.render({
+          canvasContext: context,
+          viewport: scaledViewport
+        });
       });
     });
   </script>
