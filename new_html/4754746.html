@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Document Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #ffffff;
+    --surface:     #f5f5f5;
+    --border:      #d0d0d0;
+    --text:        #1a1a1a;
+    --muted:       #777777;
+    --accent:      #2563eb;
+
+    --unchanged-bg:  #ffffff;
+    --changed-bg:    #eff6ff;
+    --removed-bg:    #fff5f5;
+    --new-bg:        #f0fdf4;
+
+    --added-color:   #b45309;
+    --added-bg:      rgba(245,200,66,.25);
+    --removed-color: #c0392b;
+    --removed-bg-w:  rgba(192,57,43,.12);
+
+    --header-h: 52px;
+    --pane-label-h: 36px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .03em;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-left: auto;
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+  .ld-unchanged { background: var(--border); }
+  .ld-changed   { background: var(--accent); }
+  .ld-removed   { background: var(--removed-color); }
+  .ld-new       { background: var(--added-color); }
+
+  /* ── PANE LABELS ── */
+  .pane-labels {
+    display: flex;
+    height: var(--pane-label-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .pane-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .pane-label:first-child {
+    border-right: 1px solid var(--border);
+    color: #1d4ed8;
+  }
+  .pane-label:last-child {
+    color: #166534;
+  }
+
+  /* ── SPLIT PANES ── */
+  .panes {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  .pane {
+    flex: 1;
+    overflow-y: scroll;
+    padding: 16px 0;
+    scroll-behavior: smooth;
+  }
+  .pane:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── BLOCKS ── */
+  .block {
+    padding: 12px 20px;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid transparent;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+    cursor: default;
+    position: relative;
+  }
+  .block:hover {
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .block.highlighted {
+    box-shadow: 0 0 0 2px var(--accent) inset;
+    z-index: 2;
+  }
+
+  .unchanged {
+    background: var(--unchanged-bg);
+    border-left-color: transparent;
+  }
+  .changed {
+    background: var(--changed-bg);
+    border-left-color: var(--accent);
+    border-bottom-color: #bfdbfe;
+  }
+  .removed {
+    background: var(--removed-bg);
+    border-left-color: var(--removed-color);
+  }
+  .new-block {
+    background: var(--new-bg);
+    border-left-color: var(--added-color);
+  }
+
+  .para-text {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  /* ── INLINE DIFF ── */
+  span.added {
+    background: var(--added-bg);
+    color: var(--added-color);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  span.removed {
+    background: var(--removed-bg-w);
+    color: var(--removed-color);
+    text-decoration: line-through;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  /* ── STAT BADGE ── */
+  .stat-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    background: rgba(37,99,235,.08);
+    color: #1d4ed8;
+    border: 1px solid rgba(37,99,235,.2);
+  }
+  .removed-badge {
+    background: rgba(192,57,43,.08);
+    color: var(--removed-color);
+    border-color: rgba(192,57,43,.2);
+  }
+  .new-badge {
+    background: rgba(180,83,9,.08);
+    color: var(--added-color);
+    border-color: rgba(180,83,9,.2);
+  }
+
+  /* ── SCROLLBAR ── */
+  .pane::-webkit-scrollbar { width: 6px; }
+  .pane::-webkit-scrollbar-track { background: var(--bg); }
+  .pane::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+  .pane::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Document Comparison</h1>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-unchanged"></div>Без изменений</div>
+    <div class="legend-item"><div class="legend-dot ld-changed"></div>Изменён</div>
+    <div class="legend-item"><div class="legend-dot ld-removed"></div>Удалён</div>
+    <div class="legend-item"><div class="legend-dot ld-new"></div>Новый</div>
+  </div>
+</header>
+
+<div class="pane-labels">
+  <div class="pane-label">◂ Предыдущая редакция</div>
+  <div class="pane-label">▸ Новая редакция</div>
+</div>
+
+<div class="panes">
+  <div class="pane" id="left-pane">
+<div class="block removed" id="left-0" data-rel-index="0"><p class="para-text"><span class="removed">Проект</span></p></div>
+<div class="block unchanged" id="left-1" data-rel-index="1"><p class="para-text">ФЕДЕРАЛЬНЫЙ ЗАКОН</p></div>
+<div class="block unchanged" id="left-2" data-rel-index="2"><p class="para-text">О внесении изменений в Трудовой кодекс Российской Федерации</p></div>
+<div class="block unchanged" id="left-3" data-rel-index="3"><p class="para-text">Статья 1</p></div>
+<div class="block unchanged" id="left-4" data-rel-index="4"><p class="para-text">Внести в Трудовой кодекс Российской Федерации (Собрание законодательства Российской Федерации, 2002, № 1, ст. 3; 2006, № 27, ст. 2878; 2013, № 27, ст. 3477) следующие изменения:</p></div>
+<div class="block unchanged" id="left-5" data-rel-index="5"><p class="para-text">1) статью 198 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="left-6" data-rel-index="6"><p class="para-text">«Статья 198. Ученический договор</p></div>
+<div class="block changed" id="left-7" data-rel-index="7"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Ученический договор <span class="removed">--</span> соглашение между работодателем и работником или лицом, ищущим работу, в соответствии с которым работодатель обязуется направить за свой счет работника или лицо, ищущее работу, на обучение для освоения основных профессиональных образовательных программ, основных программ профессионального обучения, дополнительных образовательных <span class="removed">программ</span> <span class="removed">и</span> <span class="removed">иных</span> программ, <span class="removed">подготовка</span> <span class="removed">по</span> <span class="removed">которым</span> <span class="removed">предусмотрена</span> <span class="removed">законодательством</span> <span class="removed">Российской</span> <span class="removed">Федерации,</span> а работник или лицо, ищущее работу, обязуется пройти обучение и в соответствии с полученной квалификацией (освоенными знаниями, умениями, навыками <span class="removed">и</span> <span class="removed">компетенциями)</span> отработать по трудовому договору <span class="removed">у</span> <span class="removed">данного</span> <span class="removed">работодателя</span> в течение срока, установленного в ученическом <span class="removed">договоре</span> <span class="removed">в</span> <span class="removed">случае</span> <span class="removed">заключения</span> <span class="removed">трудового</span> <span class="removed">договора.</span></p></div>
+<div class="block changed" id="left-8" data-rel-index="8"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Работодатель <span class="removed">--</span> <span class="removed">юридическое</span> <span class="removed">лицо</span> <span class="removed">(организация)</span> <span class="removed">или</span> <span class="removed">индивидуальный</span> <span class="removed">предприниматель</span> имеет право заключать с лицом, ищущим работу, или с работником ученический договор <span class="removed">на</span> <span class="removed">получение</span> <span class="removed">образования</span> без отрыва или с отрывом от работы.</p></div>
+<div class="block removed" id="left-9" data-rel-index="15"><span class="stat-badge removed-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="removed">Не допускается заключение ученического договора по образовательным программам среднего профессионального или высшего образования с работником или лицом, ищущим работу, с которым заключен договор о целевом обучении.</span></p></div>
+<div class="block removed" id="left-10" data-rel-index="15"><span class="stat-badge removed-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="removed">Ученический договор заключается также с лицом, обучающимся по образовательной программе и ищущим работу. В таком случае работодателем не принимается на себя обязательство о направлении данного лица на обучение.</span></p></div>
+<div class="block changed" id="left-11" data-rel-index="15"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Ученический договор с лицом, ищущим работу, <span class="removed">является</span> <span class="removed">гражданско-правовым</span> <span class="removed">и</span> <span class="removed">регулируется</span> настоящей <span class="removed">главой,</span> <span class="removed">гражданским</span> <span class="removed">законодательством</span> <span class="removed">и</span> <span class="removed">иными</span> <span class="removed">актами,</span> <span class="removed">содержащими</span> <span class="removed">нормы</span> <span class="removed">гражданского</span> <span class="removed">права.</span> <span class="removed">Ученический</span> <span class="removed">договор</span> с работником является дополнительным к трудовому <span class="removed">договору</span> <span class="removed">и</span> <span class="removed">регулируется</span> <span class="removed">трудовым</span> <span class="removed">законодательством</span> <span class="removed">и</span> <span class="removed">иными</span> <span class="removed">актами,</span> <span class="removed">содержащими</span> <span class="removed">нормы</span> <span class="removed">трудового</span> <span class="removed">договора.</span></p></div>
+<div class="block removed" id="left-12" data-rel-index="15"><span class="stat-badge removed-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="removed">В случае успешного завершения ученичества с лицом, ищущим работу, может быть заключен трудовой договор в срок, предусмотренный ученическим договором.</span></p></div>
+<div class="block unchanged" id="left-13" data-rel-index="14"><p class="para-text">Успешное завершение ученичества свидетельствуется успешным освоением программы, указанной в части первой настоящей статьи, подтвержденным в установленном законодательством Российской Федерации порядке.»;</p></div>
+<div class="block changed" id="left-14" data-rel-index="28"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text"><span class="removed">2)</span> часть первую статьи <span class="removed">199</span> изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="left-15" data-rel-index="18"><p class="para-text">«Ученический договор должен содержать:</p></div>
+<div class="block unchanged" id="left-16" data-rel-index="19"><p class="para-text">наименование сторон;</p></div>
+<div class="block changed" id="left-17" data-rel-index="20"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">указание на конкретную квалификацию <span class="removed">(освоенные</span> <span class="removed">знания,</span> умения, навыки <span class="removed">и</span> <span class="removed">компетенции),</span> приобретаемую учеником или наименование (вид) программы, указанной в части первой статьи 198 настоящего Кодекса, а также форму обучения (при необходимости);</p></div>
+<div class="block unchanged" id="left-18" data-rel-index="21"><p class="para-text">обязанность работодателя обеспечить ученику возможность обучения в соответствии с ученическим договором;</p></div>
+<div class="block changed" id="left-19" data-rel-index="22"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">обязанность <span class="removed">работодателя,</span> <span class="removed">в</span> <span class="removed">случае</span> <span class="removed">успешного</span> <span class="removed">завершения</span> <span class="removed">ученичества,</span> заключить трудовой договор (дополнительное соглашение к трудовому договору, в случае изменения его <span class="removed">условий)</span> с учеником в соответствии с полученной им квалификацией <span class="removed">(освоенными</span> <span class="removed">знаниями,</span> умениями, навыками <span class="removed">и</span> <span class="removed">компетенциями),</span> с определенными сторонами условиями оплаты труда, с соблюдением иных условий, предусмотренных трудовым законодательством и нормативными правовыми актами, содержащими нормы трудового <span class="removed">права,</span> <span class="removed">и</span> <span class="removed">(при</span> <span class="removed">необходимости)</span> <span class="removed">условия,</span> <span class="removed">при</span> <span class="removed">которых</span> <span class="removed">эта</span> <span class="removed">обязанность</span> <span class="removed">вступает</span> <span class="removed">в</span> <span class="removed">силу;</span></p></div>
+<div class="block changed" id="left-20" data-rel-index="23"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">обязанность ученика пройти <span class="removed">обучение,</span> <span class="removed">заключить</span> <span class="removed">трудовой</span> <span class="removed">договор</span> <span class="removed">на</span> <span class="removed">условиях,</span> <span class="removed">предусмотренных</span> <span class="removed">абзацем</span> <span class="removed">пятым</span> <span class="removed">части</span> <span class="removed">первой</span> <span class="removed">настоящей</span> <span class="removed">статьи,</span> и в соответствии с полученной квалификацией (освоенными знаниями, умениями, навыками и <span class="removed">компетенциями)</span> проработать по трудовому договору с работодателем в течение срока, установленного в ученическом договоре;</p></div>
+<div class="block unchanged" id="left-21" data-rel-index="24"><p class="para-text">срок ученичества;</p></div>
+<div class="block unchanged" id="left-22" data-rel-index="25"><p class="para-text">размер оплаты в период ученичества;</p></div>
+<div class="block unchanged" id="left-23" data-rel-index="26"><p class="para-text">условия о возврате стипендии, иных средств, потраченных работодателем в связи с ученичеством, в случае неисполнения обязательств учеником по ученическому договору.»;</p></div>
+<div class="block unchanged" id="left-24" data-rel-index="28"><p class="para-text">3) часть первую статьи 200 изложить в следующей редакции:</p></div>
+<div class="block changed" id="left-25" data-rel-index="29"><span class="stat-badge">статья: 1,
+пункт: 3</span><p class="para-text">«Ученический договор заключается на срок, необходимый для получения квалификации (освоения знаний, умений, навыков <span class="removed">и</span> <span class="removed">компетенций)</span> или освоения программы, указанной в части первой статьи 198 настоящего Кодекса и предусмотренной ученическим договором.»;</p></div>
+<div class="block unchanged" id="left-26" data-rel-index="30"><p class="para-text">4) статью 202 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="left-27" data-rel-index="31"><p class="para-text">«Статья 202. Организационные формы ученичества</p></div>
+<div class="block unchanged" id="left-28" data-rel-index="32"><p class="para-text">Ученичество организуется в форме индивидуального, бригадного, курсового обучения, а также в формах, предусмотренных при освоении программ, указанных в части первой статьи 198 настоящего Кодекса.»;</p></div>
+<div class="block unchanged" id="left-29" data-rel-index="33"><p class="para-text">5) в статье 203:</p></div>
+<div class="block unchanged" id="left-30" data-rel-index="34"><p class="para-text">а) в части первой слово «Время» заменить словами «В случае, если обучение проходит непосредственно на производстве, время»;</p></div>
+<div class="block unchanged" id="left-31" data-rel-index="35"><p class="para-text">б) в части второй слова «в организации» заменить словами «непосредственно на производстве без отрыва от работы»;</p></div>
+<div class="block unchanged" id="left-32" data-rel-index="36"><p class="para-text">6) статью 204 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="left-33" data-rel-index="37"><p class="para-text">«Статья 204. Оплата ученичества</p></div>
+<div class="block changed" id="left-34" data-rel-index="38"><span class="stat-badge">статья: 1,
+пункт: 6</span><p class="para-text">Лицам, ищущим работу, заключившим ученический договор, либо работникам, заключившим ученический договор и обучающимся без отрыва от работы, в период ученичества выплачивается стипендия, размер которой определяется ученическим договором и зависит от получаемой квалификации <span class="removed">(освоенных</span> знаний, умений, навыков <span class="removed">и</span> <span class="removed">компетенций)</span> и (или) осваиваемой программы, указанной в части первой статьи 198 настоящего Кодекса, но не может быть ниже установленного федеральным законом минимального размера оплаты труда.</p></div>
+<div class="block unchanged" id="left-35" data-rel-index="39"><p class="para-text">Работникам, заключившим ученический договор и обучающимся с отрывом от работы, в период ученичества выплачивается средняя заработная плата.</p></div>
+<div class="block unchanged" id="left-36" data-rel-index="40"><p class="para-text">Работа, выполняемая учеником на практике, оплачивается в соответствии с установленными у данного работодателя при выполнении соответствующих работ условиями оплаты труда.</p></div>
+<div class="block removed" id="left-37" data-rel-index="15"><span class="stat-badge removed-badge">статья: 1,
+пункт: 6</span><p class="para-text"><span class="removed">С лицом, ищущим работу, на период прохождения практики заключается срочный трудовой договор.»;</span></p></div>
+<div class="block unchanged" id="left-38" data-rel-index="41"><p class="para-text">7) статью 205 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="left-39" data-rel-index="42"><p class="para-text">«Статья 205. Распространение на учеников трудового законодательства</p></div>
+<div class="block changed" id="left-40" data-rel-index="43"><span class="stat-badge">статья: 1,
+пункт: 7</span><p class="para-text">Трудовое законодательство, включая законодательство об охране труда, распространяется на учеников, являющихся работниками, а также на заключивших ученический договор лиц, ищущих работу, если указанные лица заключили <span class="removed">срочный</span> трудовой договор в <span class="removed">период</span> <span class="removed">прохождения</span> <span class="removed">практики.»;</span></p></div>
+<div class="block changed" id="left-41" data-rel-index="28"><span class="stat-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="removed">8)</span> часть <span class="removed">вторую</span> статьи <span class="removed">207</span> изложить в следующей редакции:</p></div>
+<div class="block changed" id="left-42" data-rel-index="47"><span class="stat-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="removed">«В</span> случае, если ученик по окончании ученичества без уважительных причин не выполняет свои обязательства по договору, <span class="removed">в</span> <span class="removed">том</span> <span class="removed">числе</span> <span class="removed">не</span> <span class="removed">приступает</span> <span class="removed">к</span> <span class="removed">работе,</span> <span class="removed">расторгает</span> <span class="removed">трудовой</span> <span class="removed">договор</span> <span class="removed">с</span> <span class="removed">работодателем</span> <span class="removed">ранее</span> <span class="removed">установленного</span> <span class="removed">ученическим</span> <span class="removed">договором</span> <span class="removed">срока,</span> он по требованию работодателя <span class="removed">возвращает</span> ему полученную за время ученичества стипендию, а также возмещает работодателю средства, потраченные работодателем в связи с ученичеством в размере, порядке и сроки, установленные ученическим договором.».</p></div>
+<div class="block unchanged" id="left-43" data-rel-index="48"><p class="para-text">Статья 2</p></div>
+<div class="block changed" id="left-44" data-rel-index="49"><p class="para-text">Настоящий Федеральный закон вступает в силу с 1 сентября <span class="removed">2025</span> года.</p></div>
+  </div>
+  <div class="pane" id="right-pane">
+<div class="block new-block" id="right-0" data-left-index="0"><p class="para-text"><span class="added">&amp;gt; Вносится Правительством Российской Федерации
+&amp;gt;
+&amp;gt; Проект</span></p></div>
+<div class="block unchanged" id="right-1" data-left-index="1"><p class="para-text">ФЕДЕРАЛЬНЫЙ ЗАКОН</p></div>
+<div class="block unchanged" id="right-2" data-left-index="2"><p class="para-text">О внесении изменений в Трудовой кодекс Российской Федерации</p></div>
+<div class="block unchanged" id="right-3" data-left-index="3"><p class="para-text">Статья 1</p></div>
+<div class="block unchanged" id="right-4" data-left-index="4"><p class="para-text">Внести в Трудовой кодекс Российской Федерации (Собрание законодательства Российской Федерации, 2002, № 1, ст. 3; 2006, № 27, ст. 2878; 2013, № 27, ст. 3477) следующие изменения:</p></div>
+<div class="block unchanged" id="right-5" data-left-index="5"><p class="para-text">1) статью 198 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="right-6" data-left-index="6"><p class="para-text">«Статья 198. Ученический договор</p></div>
+<div class="block changed" id="right-7" data-left-index="7"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Ученический договор <span class="added">-</span> соглашение между работодателем <span class="added">(юридическим</span> <span class="added">лицом</span> <span class="added">или</span> <span class="added">индивидуальным</span> <span class="added">предпринимателем)</span> и работником или лицом, ищущим работу, в соответствии с которым работодатель обязуется направить за свой счет работника или лицо, ищущее работу, на обучение для освоения <span class="added">программ,</span> <span class="added">подготовка</span> <span class="added">по</span> <span class="added">которым</span> <span class="added">предусмотрена</span> <span class="added">законодательством</span> <span class="added">Российской</span> <span class="added">Федерации,</span> <span class="added">в</span> <span class="added">том</span> <span class="added">числе</span> основных профессиональных образовательных программ, основных программ профессионального обучения, дополнительных образовательных программ, а работник или лицо, ищущее работу, обязуется пройти обучение и в соответствии с полученной квалификацией (освоенными знаниями, умениями, навыками <span class="added">или</span> <span class="added">компетенцией)</span> отработать по <span class="added">вступившему</span> <span class="added">в</span> <span class="added">силу</span> трудовому договору в течение срока, установленного в ученическом <span class="added">договоре.</span></p></div>
+<div class="block changed" id="right-8" data-left-index="8"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Работодатель имеет право заключать с лицом, ищущим работу, или с работником ученический договор <span class="added">для</span> <span class="added">обучения,</span> <span class="added">предусмотренного</span> <span class="added">частью</span> <span class="added">первой</span> <span class="added">настоящей</span> <span class="added">статьи,</span> без отрыва или с отрывом от работы.</p></div>
+<div class="block new-block" id="right-9" data-left-index="12"><span class="stat-badge new-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="added">В случае заключения ученического договора с лицом, ищущим работу, для освоения программы, предусмотренной частью первой настоящей статьи, в целях овладения определенной техникой, технологией, работы на определенном оборудовании или выполнения в последующем заведомо определенной работы работодатель вправе установить условия вступления в силу трудового договора по итогам успешного завершения ученичества, в том числе дополнительный отбор.</span></p></div>
+<div class="block new-block" id="right-10" data-left-index="7"><span class="stat-badge new-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="added">Условия дополнительного отбора или иные отлагательные условия, обусловливающие вступление трудового договора в силу, определяются в ученическом договоре в соответствии с локальным нормативным актом, принимаемым работодателем с учетом мнения выборного органа первичной профсоюзной организации в порядке, установленном статьей 372 настоящего Кодекса для принятия локальных нормативных актов.</span></p></div>
+<div class="block new-block" id="right-11" data-left-index="12"><span class="stat-badge new-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="added">В случае, предусмотренном частью третьей настоящей статьи, ученический договор заключается одновременно с трудовым договором.</span></p></div>
+<div class="block new-block" id="right-12" data-left-index="12"><span class="stat-badge new-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="added">Вступление в силу трудового договора, предусмотренного частью пятой настоящей статьи, не может превышать месяца с даты завершения ученичества.</span></p></div>
+<div class="block new-block" id="right-13" data-left-index="10"><span class="stat-badge new-badge">статья: 1,
+пункт: 1</span><p class="para-text"><span class="added">Работодатель вправе заключить с лицом, ищущим работу, ученический договор в форме гражданско-правового договора на основе примерной формы ученического договора, утверждаемой федеральным органом исполнительной власти, осуществляющим функции по выработке государственной политики и нормативно-правовому регулированию в сфере труда, с учетом положений настоящей главы и с учетом мнения Российской трехсторонней комиссии по регулированию социально-трудовых отношений.</span></p></div>
+<div class="block unchanged" id="right-14" data-left-index="13"><p class="para-text">Успешное завершение ученичества свидетельствуется успешным освоением программы, указанной в части первой настоящей статьи, подтвержденным в установленном законодательством Российской Федерации порядке.</p></div>
+<div class="block changed" id="right-15" data-left-index="11"><span class="stat-badge">статья: 1,
+пункт: 1</span><p class="para-text">Ученический договор с лицом, ищущим работу, <span class="added">заключенный</span> <span class="added">в</span> <span class="added">соответствии</span> <span class="added">с</span> <span class="added">частью</span> <span class="added">третьей</span> настоящей <span class="added">статьи,</span> <span class="added">или</span> с работником является дополнительным к трудовому <span class="added">договору.»;</span></p></div>
+<div class="block changed" id="right-16" data-left-index="5"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text"><span class="added">2)</span> статью <span class="added">199</span> изложить в следующей редакции:</p></div>
+<div class="block new-block" id="right-17" data-left-index="6"><span class="stat-badge new-badge">статья: 1,
+пункт: 2</span><p class="para-text"><span class="added">«Статья 199. Содержание ученического договора</span></p></div>
+<div class="block unchanged" id="right-18" data-left-index="15"><p class="para-text">Ученический договор должен содержать:</p></div>
+<div class="block unchanged" id="right-19" data-left-index="16"><p class="para-text">наименование сторон;</p></div>
+<div class="block changed" id="right-20" data-left-index="17"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">указание на конкретную квалификацию <span class="added">(знания,</span> умения, навыки <span class="added">или</span> <span class="added">компетенцию),</span> приобретаемую учеником или наименование (вид) программы, указанной в части первой статьи 198 настоящего Кодекса, а также форму обучения (при необходимости);</p></div>
+<div class="block unchanged" id="right-21" data-left-index="18"><p class="para-text">обязанность работодателя обеспечить ученику возможность обучения в соответствии с ученическим договором;</p></div>
+<div class="block changed" id="right-22" data-left-index="19"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">обязанность <span class="added">работодателя</span> заключить трудовой договор (дополнительное соглашение к трудовому договору, в случае изменения его <span class="added">условий),</span> <span class="added">за</span> <span class="added">исключением</span> <span class="added">случаев,</span> <span class="added">предусмотренных</span> <span class="added">частью</span> <span class="added">седьмой</span> <span class="added">статьи</span> <span class="added">198</span> <span class="added">настоящего</span> <span class="added">Кодекса,</span> с учеником в соответствии с полученной <span class="added">или</span> <span class="added">получаемой</span> им квалификацией <span class="added">(знаниями,</span> умениями, навыками <span class="added">или</span> <span class="added">компетенцией),</span> с определенными сторонами условиями оплаты труда, с соблюдением иных условий, предусмотренных трудовым законодательством и <span class="added">иными</span> нормативными правовыми актами, содержащими нормы трудового <span class="added">права;</span></p></div>
+<div class="block changed" id="right-23" data-left-index="20"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text">обязанность ученика пройти <span class="added">обучение</span> и в соответствии с полученной квалификацией (освоенными знаниями, умениями, навыками <span class="added">или</span> <span class="added">компетенцией)</span> <span class="added">приступить</span> <span class="added">к</span> <span class="added">работе</span> и проработать по <span class="added">вступившему</span> <span class="added">в</span> <span class="added">силу</span> трудовому договору с работодателем в течение срока, установленного в ученическом договоре;</p></div>
+<div class="block unchanged" id="right-24" data-left-index="21"><p class="para-text">срок ученичества;</p></div>
+<div class="block unchanged" id="right-25" data-left-index="22"><p class="para-text">размер оплаты в период ученичества;</p></div>
+<div class="block unchanged" id="right-26" data-left-index="23"><p class="para-text">условия о возврате стипендии, иных средств, потраченных работодателем в связи с ученичеством, в случае неисполнения обязательств учеником по ученическому договору.</p></div>
+<div class="block new-block" id="right-27" data-left-index="15"><span class="stat-badge new-badge">статья: 1,
+пункт: 2</span><p class="para-text"><span class="added">Ученический договор может содержать иные условия, определенные соглашением сторон, в том числе с учетом законодательства Российской Федерации в сфере образования.»;</span></p></div>
+<div class="block unchanged" id="right-28" data-left-index="24"><p class="para-text">3) часть первую статьи 200 изложить в следующей редакции:</p></div>
+<div class="block changed" id="right-29" data-left-index="25"><span class="stat-badge">статья: 1,
+пункт: 3</span><p class="para-text">«Ученический договор заключается на срок, необходимый для получения квалификации (освоения знаний, умений, навыков <span class="added">или</span> <span class="added">компетенции)</span> или освоения программы, указанной в части первой статьи 198 настоящего Кодекса и предусмотренной ученическим договором.»;</p></div>
+<div class="block unchanged" id="right-30" data-left-index="26"><p class="para-text">4) статью 202 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="right-31" data-left-index="27"><p class="para-text">«Статья 202. Организационные формы ученичества</p></div>
+<div class="block unchanged" id="right-32" data-left-index="28"><p class="para-text">Ученичество организуется в форме индивидуального, бригадного, курсового обучения, а также в формах, предусмотренных при освоении программ, указанных в части первой статьи 198 настоящего Кодекса.»;</p></div>
+<div class="block unchanged" id="right-33" data-left-index="29"><p class="para-text">5) в статье 203:</p></div>
+<div class="block unchanged" id="right-34" data-left-index="30"><p class="para-text">а) в части первой слово «Время» заменить словами «В случае, если обучение проходит непосредственно на производстве, время»;</p></div>
+<div class="block unchanged" id="right-35" data-left-index="31"><p class="para-text">б) в части второй слова «в организации» заменить словами «непосредственно на производстве без отрыва от работы»;</p></div>
+<div class="block unchanged" id="right-36" data-left-index="32"><p class="para-text">6) статью 204 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="right-37" data-left-index="33"><p class="para-text">«Статья 204. Оплата ученичества</p></div>
+<div class="block changed" id="right-38" data-left-index="34"><span class="stat-badge">статья: 1,
+пункт: 6</span><p class="para-text">Лицам, ищущим работу, заключившим ученический договор, либо работникам, заключившим ученический договор и обучающимся без отрыва от работы, в период ученичества выплачивается стипендия, размер которой определяется ученическим договором и зависит от получаемой квалификации <span class="added">(осваиваемых</span> знаний, умений, навыков <span class="added">или</span> <span class="added">компетенции)</span> и (или) осваиваемой программы, указанной в части первой статьи 198 настоящего Кодекса, но не может быть ниже установленного федеральным законом минимального размера оплаты труда.</p></div>
+<div class="block unchanged" id="right-39" data-left-index="35"><p class="para-text">Работникам, заключившим ученический договор и обучающимся с отрывом от работы, в период ученичества выплачивается средняя заработная плата.</p></div>
+<div class="block unchanged" id="right-40" data-left-index="36"><p class="para-text">Работа, выполняемая учеником на практике, оплачивается в соответствии с установленными у данного работодателя при выполнении соответствующих работ условиями оплаты труда.»;</p></div>
+<div class="block unchanged" id="right-41" data-left-index="38"><p class="para-text">7) статью 205 изложить в следующей редакции:</p></div>
+<div class="block unchanged" id="right-42" data-left-index="39"><p class="para-text">«Статья 205. Распространение на учеников трудового законодательства</p></div>
+<div class="block changed" id="right-43" data-left-index="40"><span class="stat-badge">статья: 1,
+пункт: 7</span><p class="para-text">Трудовое законодательство, включая законодательство об охране труда, распространяется на учеников, являющихся работниками, а также на заключивших ученический договор лиц, ищущих работу, если указанные лица заключили трудовой договор в <span class="added">соответствии</span> <span class="added">с</span> <span class="added">частью</span> <span class="added">пятой</span> <span class="added">статьи</span> <span class="added">198</span> <span class="added">настоящего</span> <span class="added">Кодекса.»;</span></p></div>
+<div class="block changed" id="right-44" data-left-index="5"><span class="stat-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="added">8)</span> статью <span class="added">207</span> изложить в следующей редакции:</p></div>
+<div class="block new-block" id="right-45" data-left-index="33"><span class="stat-badge new-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="added">«Статья 207. Права и обязанности учеников по окончании ученичества</span></p></div>
+<div class="block new-block" id="right-46" data-left-index="36"><span class="stat-badge new-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="added">Ученикам при заключении трудового договора у данного работодателя испытательный срок не устанавливается.</span></p></div>
+<div class="block changed" id="right-47" data-left-index="42"><span class="stat-badge">статья: 1,
+пункт: 8</span><p class="para-text"><span class="added">В</span> случае, если ученик по окончании ученичества без уважительных причин не выполняет свои обязательства по <span class="added">ученическому</span> договору, он по требованию работодателя <span class="added">обязан</span> <span class="added">вернуть</span> ему полученную за время ученичества стипендию, а также возмещает работодателю средства, потраченные работодателем в связи с ученичеством в размере, порядке и сроки, установленные ученическим договором.».</p></div>
+<div class="block unchanged" id="right-48" data-left-index="43"><p class="para-text">Статья 2</p></div>
+<div class="block changed" id="right-49" data-left-index="44"><span class="stat-badge">статья: 2</span><p class="para-text">Настоящий Федеральный закон вступает в силу с 1 сентября <span class="added">2026</span> года.</p></div>
+<div class="block new-block" id="right-50" data-left-index="44"><p class="para-text"><span class="added">[SIGNERSTAMP1]</span></p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const leftPane  = document.getElementById('left-pane');
+  const rightPane = document.getElementById('right-pane');
+
+  // Track which pane the cursor is currently over
+  let activePane = null; // 'left' | 'right' | null
+
+  leftPane.addEventListener('mouseenter',  () => { activePane = 'left';  });
+  leftPane.addEventListener('mouseleave',  () => { if (activePane === 'left')  activePane = null; });
+  rightPane.addEventListener('mouseenter', () => { activePane = 'right'; });
+  rightPane.addEventListener('mouseleave', () => { if (activePane === 'right') activePane = null; });
+
+  const rightBlocks = [...rightPane.querySelectorAll('.block[data-left-index]')];
+  const leftBlocks  = [...leftPane.querySelectorAll('.block[data-rel-index]')];
+
+  let isSyncing = false;
+
+  function scrollOppositeTo(srcPane, dstPane, blocks, attrName, idPrefix) {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const srcTop    = srcPane.getBoundingClientRect().top;
+    const srcHeight = srcPane.clientHeight;
+
+    let best = null, bestScore = -Infinity;
+    for (const b of blocks) {
+      const r = b.getBoundingClientRect();
+      const visible = Math.min(r.bottom, srcTop + srcHeight) - Math.max(r.top, srcTop);
+      if (visible > bestScore) { bestScore = visible; best = b; }
+    }
+
+    if (best) {
+      const idx = best.getAttribute(attrName);
+      if (idx !== '' && idx !== null) {
+        const target = document.getElementById(idPrefix + idx);
+        if (target) {
+          const ph = dstPane.clientHeight;
+          dstPane.scrollTop = target.offsetTop - ph / 2 + target.clientHeight / 2;
+        }
+      }
+    }
+
+    requestAnimationFrame(() => { isSyncing = false; });
+  }
+
+  // Cursor on LEFT → sync RIGHT
+  leftPane.addEventListener('scroll', () => {
+    if (activePane !== 'left') return;
+    scrollOppositeTo(leftPane, rightPane, leftBlocks, 'data-rel-index', 'right-');
+  });
+
+  // Cursor on RIGHT → sync LEFT
+  rightPane.addEventListener('scroll', () => {
+    if (activePane !== 'right') return;
+    scrollOppositeTo(rightPane, leftPane, rightBlocks, 'data-left-index', 'left-');
+  });
+
+  // ── Click highlight ──────────────────────────────────────────────────────
+  function clearHighlights() {
+    document.querySelectorAll('.block.highlighted').forEach(b => b.classList.remove('highlighted'));
+  }
+
+  leftPane.addEventListener('click', (e) => {
+    const block = e.target.closest('.block');
+    if (!block) return;
+    clearHighlights();
+    block.classList.add('highlighted');
+    const relIdx = block.getAttribute('data-rel-index');
+    if (relIdx !== '' && relIdx !== null) {
+      const peer = document.getElementById('right-' + relIdx);
+      if (peer) peer.classList.add('highlighted');
+    }
+  });
+
+  rightPane.addEventListener('click', (e) => {
+    const block = e.target.closest('.block');
+    if (!block) return;
+    clearHighlights();
+    block.classList.add('highlighted');
+    const leftIdx = block.getAttribute('data-left-index');
+    if (leftIdx !== '' && leftIdx !== null) {
+      const peer = document.getElementById('left-' + leftIdx);
+      if (peer) peer.classList.add('highlighted');
+    }
+  });
+})();
+</script>
+</body>
+</html>

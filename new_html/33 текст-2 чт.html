@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Document Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #ffffff;
+    --surface:     #f5f5f5;
+    --border:      #d0d0d0;
+    --text:        #1a1a1a;
+    --muted:       #777777;
+    --accent:      #2563eb;
+
+    --unchanged-bg:  #ffffff;
+    --changed-bg:    #eff6ff;
+    --removed-bg:    #fff5f5;
+    --new-bg:        #f0fdf4;
+
+    --added-color:   #b45309;
+    --added-bg:      rgba(245,200,66,.25);
+    --removed-color: #c0392b;
+    --removed-bg-w:  rgba(192,57,43,.12);
+
+    --header-h: 52px;
+    --pane-label-h: 36px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .03em;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-left: auto;
+    align-items: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+  .ld-unchanged { background: var(--border); }
+  .ld-changed   { background: var(--accent); }
+  .ld-removed   { background: var(--removed-color); }
+  .ld-new       { background: var(--added-color); }
+
+  /* ── PANE LABELS ── */
+  .pane-labels {
+    display: flex;
+    height: var(--pane-label-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .pane-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .pane-label:first-child {
+    border-right: 1px solid var(--border);
+    color: #1d4ed8;
+  }
+  .pane-label:last-child {
+    color: #166534;
+  }
+
+  /* ── SPLIT PANES ── */
+  .panes {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  .pane {
+    flex: 1;
+    overflow-y: scroll;
+    padding: 16px 0;
+    scroll-behavior: smooth;
+  }
+  .pane:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── BLOCKS ── */
+  .block {
+    padding: 12px 20px;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid transparent;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+    cursor: default;
+    position: relative;
+  }
+  .block:hover {
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .block.highlighted {
+    box-shadow: 0 0 0 2px var(--accent) inset;
+    z-index: 2;
+  }
+
+  .unchanged {
+    background: var(--unchanged-bg);
+    border-left-color: transparent;
+  }
+  .changed {
+    background: var(--changed-bg);
+    border-left-color: var(--accent);
+    border-bottom-color: #bfdbfe;
+  }
+  .removed {
+    background: var(--removed-bg);
+    border-left-color: var(--removed-color);
+  }
+  .new-block {
+    background: var(--new-bg);
+    border-left-color: var(--added-color);
+  }
+
+  .para-text {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  /* ── INLINE DIFF ── */
+  span.added {
+    background: var(--added-bg);
+    color: var(--added-color);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  span.removed {
+    background: var(--removed-bg-w);
+    color: var(--removed-color);
+    text-decoration: line-through;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  /* ── STAT BADGE ── */
+  .stat-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    background: rgba(37,99,235,.08);
+    color: #1d4ed8;
+    border: 1px solid rgba(37,99,235,.2);
+  }
+  .removed-badge {
+    background: rgba(192,57,43,.08);
+    color: var(--removed-color);
+    border-color: rgba(192,57,43,.2);
+  }
+  .new-badge {
+    background: rgba(180,83,9,.08);
+    color: var(--added-color);
+    border-color: rgba(180,83,9,.2);
+  }
+
+  /* ── SCROLLBAR ── */
+  .pane::-webkit-scrollbar { width: 6px; }
+  .pane::-webkit-scrollbar-track { background: var(--bg); }
+  .pane::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+  .pane::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Document Comparison</h1>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-unchanged"></div>Без изменений</div>
+    <div class="legend-item"><div class="legend-dot ld-changed"></div>Изменён</div>
+    <div class="legend-item"><div class="legend-dot ld-removed"></div>Удалён</div>
+    <div class="legend-item"><div class="legend-dot ld-new"></div>Новый</div>
+  </div>
+</header>
+
+<div class="pane-labels">
+  <div class="pane-label">◂ Предыдущая редакция</div>
+  <div class="pane-label">▸ Новая редакция</div>
+</div>
+
+<div class="panes">
+  <div class="pane" id="left-pane">
+<div class="block changed" id="left-0" data-rel-index="4"><p class="para-text"><span class="removed">Вносится</span> <span class="removed">Правительством</span> Российской Федерации</p></div>
+<div class="block changed" id="left-1" data-rel-index="0"><p class="para-text"><span class="removed">&amp;gt;</span> Проект</p></div>
+<div class="block unchanged" id="left-2" data-rel-index="2"><p class="para-text">ФЕДЕРАЛЬНЫЙ ЗАКОН</p></div>
+<div class="block unchanged" id="left-3" data-rel-index="5"><p class="para-text">О внесении изменений в Федеральный закон
+&quot;О государственной геномной регистрации
+в Российской Федерации&quot;</p></div>
+<div class="block unchanged" id="left-4" data-rel-index="7"><p class="para-text">Статья 1</p></div>
+<div class="block unchanged" id="left-5" data-rel-index="16"><p class="para-text">Внести в Федеральный закон от 3 декабря 2008 года № 242-ФЗ &quot;О государственной геномной регистрации в Российской Федерации&quot; (Собрание законодательства Российской Федерации, 2008, № 49, ст. 5740; 2023, № 6, ст. 915; 2024, № 8, ст. 1043; № 33, ст. 4949) следующие изменения:</p></div>
+<div class="block unchanged" id="left-6" data-rel-index="17"><p class="para-text">1) в части 1 статьи 7:</p></div>
+<div class="block unchanged" id="left-7" data-rel-index="18"><p class="para-text">а) пункт 5 дополнить словами &quot;, если в отношении этого лица отсутствует геномная информация&quot;;</p></div>
+<div class="block unchanged" id="left-8" data-rel-index="19"><p class="para-text">б) дополнить пунктами 6 - 10 следующего содержания:</p></div>
+<div class="block unchanged" id="left-9" data-rel-index="20"><p class="para-text">&quot;6) военнослужащие, проходящие военную службу по контракту
+в Вооруженных Силах Российской Федерации, войсках национальной гвардии Российской Федерации (граждане, призванные на военную службу по мобилизации), направляемые для участия в боевых действиях, контртеррористических операциях, выполнения задач в период мобилизации, в условиях чрезвычайного или военного положения, военного времени, вооруженных конфликтов, а также для участия
+в деятельности по поддержанию или восстановлению международного мира и безопасности либо участия в операциях, проводимых Вооруженными Силами Российской Федерации, войсками национальной гвардии Российской Федерации, в том числе для выполнения задач
+по пресечению международной террористической деятельности
+за пределами территории Российской Федерации, за исключением военнослужащих, проходящих военную службу в органах, объединениях, соединениях, воинских частях и организациях (на отдельных воинских должностях), перечень которых устанавливается соответственно Министерством обороны Российской Федерации и Федеральной службой войск национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="left-10" data-rel-index="21"><p class="para-text">7) граждане Российской Федерации, пребывающие
+в добровольческих формированиях, содействующих выполнению задач, возложенных на Вооруженные Силы Российской Федерации (войска национальной гвардии Российской Федерации), в период мобилизации,
+в период действия военного положения, в военное время,
+при возникновении вооруженных конфликтов, при проведении контртеррористических операций, а также при использовании Вооруженных Сил Российской Федерации (войск национальной гвардии Российской Федерации) за пределами территории Российской Федерации;</p></div>
+<div class="block changed" id="left-11" data-rel-index="22"><span class="stat-badge">статья: 1,
+пункт: 8</span><p class="para-text">8) лица, проходящие службу в войсках национальной гвардии Российской Федерации и имеющие специальные звания полиции, направляемые для участия в боевых действиях, контртеррористических операциях, выполнения задач в период мобилизации, в условиях чрезвычайного или военного положения, военного времени, вооруженных конфликтов, а также для участия в <span class="removed">деятельности</span> <span class="removed">по</span> <span class="removed">поддержанию</span> <span class="removed">или</span> <span class="removed">восстановлению</span> <span class="removed">международного</span> <span class="removed">мира</span> <span class="removed">и</span> <span class="removed">безопасности</span> <span class="removed">либо</span> <span class="removed">участия</span> <span class="removed">в</span> операциях, проводимых войсками национальной гвардии Российской Федерации, в том числе для выполнения задач по <span class="removed">пресечению</span> <span class="removed">международной</span> <span class="removed">террористической</span> <span class="removed">деятельности</span> <span class="removed">за</span> <span class="removed">пределами</span> <span class="removed">территории</span> Российской Федерации, за исключением лиц, проходящих службу в органах, подразделениях и организациях (на отдельных должностях) войск национальной гвардии Российской Федерации и имеющих специальные звания полиции, перечень которых устанавливается Федеральной службой войск национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="left-12" data-rel-index="23"><p class="para-text">9) сотрудники органов внутренних дел Российской Федерации, направляемые для участия в контртеррористических операциях, специальных и иных определенных Президентом Российской Федерации операциях и выполнения задач в области территориальной обороны
+в условиях вооруженного конфликта, за исключением сотрудников подразделений Министерства внутренних дел Российской Федерации
+и подразделений территориальных органов Министерства внутренних дел Российской Федерации, перечень которых устанавливается Министерством внутренних дел Российской Федерации;</p></div>
+<div class="block unchanged" id="left-13" data-rel-index="24"><p class="para-text">10) федеральные государственные гражданские служащие и работники органов, объединений, соединений, воинских частей и организаций Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации, направляемые для обеспечения выполнения боевых (специальных) задач в период мобилизации, в условиях чрезвычайного
+или военного положения, военного времени, вооруженных конфликтов, задач при проведении контртеррористических операций, а также для участия
+в деятельности по поддержанию или восстановлению международного мира и безопасности либо участия в операциях, проводимых Вооруженными Силами Российской Федерации, войсками национальной гвардии Российской Федерации, в том числе для выполнения задач по пресечению международной террористической деятельности за пределами территории Российской Федерации, за исключением федеральных государственных гражданских служащих и работников органов, объединений, соединений, воинских частей и организаций, перечень которых устанавливается соответственно Министерством обороны Российской Федерации
+и Федеральной службой войск национальной гвардии Российской Федерации.&quot;;</p></div>
+<div class="block unchanged" id="left-14" data-rel-index="25"><p class="para-text">2) часть 1 статьи 9 дополнить пунктом 2^3^ следующего содержания:</p></div>
+<div class="block unchanged" id="left-15" data-rel-index="26"><p class="para-text">&quot;2^3^) лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, проводится органами, объединениями, соединениями, воинскими частями и организациями Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации и органами внутренних дел Российской Федерации совместно с подразделениями органов внутренних дел Российской Федерации, к компетенции которых относится указанный вид деятельности;&quot;;</p></div>
+<div class="block unchanged" id="left-16" data-rel-index="27"><p class="para-text">3) статью 12 дополнить частью 2^1^ следующего содержания:</p></div>
+<div class="block changed" id="left-17" data-rel-index="28"><span class="stat-badge">статья: 1,
+пункт: 3</span><p class="para-text">&quot;2^1^. Геномная информация, полученная при проведении государственной геномной регистрации лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, хранится до достижения ими возраста 100 лет, за исключением случая, предусмотренного частью 2^1^ статьи 16 настоящего Федерального закона, а в случае их гибели (смерти) - до установления <span class="removed">личности,</span> в том числе при необходимости с использованием геномной информации.&quot;;</p></div>
+<div class="block unchanged" id="left-18" data-rel-index="29"><p class="para-text">4) часть 1 статьи 13 дополнить пунктом 3^4^ следующего содержания:</p></div>
+<div class="block unchanged" id="left-19" data-rel-index="30"><p class="para-text">&quot;3^4^) от лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, - уполномоченными должностными лицами Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации и органов внутренних дел Российской Федерации;&quot;;</p></div>
+<div class="block unchanged" id="left-20" data-rel-index="31"><p class="para-text">5) в пункте 2 части 1 статьи 14 слова &quot;в пунктах 1 и 5&quot; заменить словами &quot;в пунктах 1, 5 - 10&quot;;</p></div>
+<div class="block unchanged" id="left-21" data-rel-index="32"><p class="para-text">6) статью 16 дополнить частью 2^1^ следующего содержания:</p></div>
+<div class="block unchanged" id="left-22" data-rel-index="33"><p class="para-text">&quot;2^1^. Геномная информация, полученная в результате проведения обязательной государственной геномной регистрации лиц, указанных
+в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, может быть уничтожена на основании письменного заявления:</p></div>
+<div class="block unchanged" id="left-23" data-rel-index="34"><p class="para-text">1) лиц, указанных в пункте 6 части 1 статьи 7 настоящего Федерального закона, - после увольнения с военной службы;</p></div>
+<div class="block changed" id="left-24" data-rel-index="21"><span class="stat-badge">статья: 1,
+пункт: 2</span><p class="para-text"><span class="removed">2)</span> <span class="removed">лиц,</span> <span class="removed">указанных</span> в <span class="removed">пункте</span> <span class="removed">7</span> <span class="removed">части</span> <span class="removed">1</span> <span class="removed">статьи</span> <span class="removed">7</span> <span class="removed">настоящего</span> <span class="removed">Федерального</span> <span class="removed">закона,</span> <span class="removed">-</span> <span class="removed">после</span> <span class="removed">исключения</span> <span class="removed">из</span> добровольческих <span class="removed">формирований,</span> содействующих выполнению задач, возложенных на Вооруженные Силы Российской Федерации (войска национальной гвардии Российской Федерации), в период мобилизации, в период действия военного положения, в военное время, при возникновении вооруженных конфликтов, при проведении контртеррористических операций, а также при использовании Вооруженных Сил Российской Федерации (войск национальной гвардии Российской Федерации) за пределами территории Российской Федерации;</p></div>
+<div class="block unchanged" id="left-25" data-rel-index="36"><p class="para-text">3) лиц, указанных в пункте 8 части 1 статьи 7 настоящего Федерального закона, - после увольнения со службы в войсках национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="left-26" data-rel-index="37"><p class="para-text">4) лиц, указанных в пункте 9 части 1 статьи 7 настоящего Федерального закона, - после увольнения из органов внутренних дел Российской Федерации;</p></div>
+<div class="block unchanged" id="left-27" data-rel-index="38"><p class="para-text">5) лиц, указанных в пункте 10 части 1 статьи 7 настоящего Федерального закона, - после увольнения с федеральной государственной гражданской службы в органах, объединениях, соединениях, воинских частях и организациях Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации, увольнения из органов, объединений, соединений, воинских частей и организаций Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации.&quot;.</p></div>
+<div class="block unchanged" id="left-28" data-rel-index="10"><p class="para-text">Статья 2</p></div>
+<div class="block unchanged" id="left-29" data-rel-index="47"><p class="para-text">Настоящий Федеральный закон вступает в силу по истечении девяноста дней после дня его официального опубликования.</p></div>
+<div class="block removed" id="left-30" data-rel-index="48"><span class="stat-badge removed-badge">статья: 2</span><p class="para-text"><span class="removed">Президент</span></p></div>
+<div class="block changed" id="left-31" data-rel-index="4"><p class="para-text">Российской Федерации</p></div>
+  </div>
+  <div class="pane" id="right-pane">
+<div class="block changed" id="right-0" data-left-index="1"><p class="para-text">Проект <span class="added">№</span> <span class="added">1131086-8</span></p></div>
+<div class="block new-block" id="right-1" data-left-index=""><p class="para-text"><span class="added">во втором чтении</span></p></div>
+<div class="block unchanged" id="right-2" data-left-index="2"><p class="para-text">ФЕДЕРАЛЬНЫЙ ЗАКОН</p></div>
+<div class="block new-block" id="right-3" data-left-index="3"><p class="para-text"><span class="added">&amp;gt; О внесении изменений в отдельные законодательные</span></p></div>
+<div class="block changed" id="right-4" data-left-index="31"><p class="para-text"><span class="added">акты</span> Российской Федерации</p></div>
+<div class="block unchanged" id="right-5" data-left-index="3"><p class="para-text">(О внесении изменений в Федеральный закон
+&quot;О государственной геномной регистрации в Российской Федерации&quot;)</p></div>
+<div class="block new-block" id="right-6" data-left-index="27"><p class="para-text"><span class="added">Принят Государственной Думой 16 декабря 2025 года присвоении воинских званий в органах военной прокуратуры и военных следственных органах)</span></p></div>
+<div class="block unchanged" id="right-7" data-left-index="4"><p class="para-text">Статья 1</p></div>
+<div class="block new-block" id="right-8" data-left-index="16"><span class="stat-badge new-badge">статья: 1</span><p class="para-text"><span class="added">Статью 22^1^ Федерального закона от 31 мая 1996 года № 61-ФЗ &quot;Об обороне&quot; (Собрание законодательства Российской Федерации, 1996, № 23, ст. 2750; 2022, № 45, ст. 7664; 2023, № 25, ст. 4418; 2024, № 1, ст. 20) дополнить пунктом 4^2^ следующего содержания:</span></p></div>
+<div class="block new-block" id="right-9" data-left-index="3"><span class="stat-badge new-badge">статья: 1</span><p class="para-text"><span class="added">&quot;4^2^. Граждане Российской Федерации, пребывающие в добровольческих формированиях, подлежат обязательной государственной дактилоскопической регистрации и обязательной государственной геномной регистрации в соответствии с федеральными законами.&quot;.</span></p></div>
+<div class="block unchanged" id="right-10" data-left-index="28"><p class="para-text">Статья 2</p></div>
+<div class="block new-block" id="right-11" data-left-index="5"><span class="stat-badge new-badge">статья: 2</span><p class="para-text"><span class="added">Пункт 4 статьи 2 Федерального закона от 28 марта 1998 года № 53-ФЗ &quot;О воинской обязанности и военной службе&quot; (Собрание законодательства Российской Федерации, 1998, № 13, ст. 1475; 2000, № 46, ст. 4537; 2002, № 30, ст. 3033; 2003, № 27, ст. 2700; № 46, ст. 4437; 2004, № 18, ст. 1687; № 27, ст. 2711; 2005, № 10, ст. 763; № 14, ст. 1212; 2007, № 50, ст. 6241; 2010, № 31, ст. 4192; 2011, № 50, ст. 7366; 2013, № 9, ст. 870; 2014, № 23, ст. 2930; 2016, № 27, ст. 4160; 2018, № 1, ст. 57; 2021, № 18, ст. 3060; 2025, № 28, ст. 3852) после слов &quot;дактилоскопической регистрации&quot; дополнить словами &quot;и обязательной государственной геномной регистрации&quot;.</span></p></div>
+<div class="block new-block" id="right-12" data-left-index="4"><span class="stat-badge new-badge">статья: 3</span><p class="para-text"><span class="added">Статья 3</span></p></div>
+<div class="block new-block" id="right-13" data-left-index="5"><span class="stat-badge new-badge">статья: 3</span><p class="para-text"><span class="added">Часть 5 статьи 15 Федерального закона от 27 июля 2004 года № 79-ФЗ &quot;О государственной гражданской службе Российской Федерации&quot; (Собрание законодательства Российской Федерации, 2004, № 31, ст. 3215; 2007, № 16, ст. 1828; 2011, № 48, ст. 6730; 2021, № 18, ст. 3060; 2023, № 1, ст. 92; № 51, ст. 9167) изложить в следующей редакции:</span></p></div>
+<div class="block new-block" id="right-14" data-left-index="3"><span class="stat-badge new-badge">статья: 3</span><p class="para-text"><span class="added">&quot;5. Гражданские служащие подлежат обязательной государственной дактилоскопической регистрации и обязательной государственной геномной регистрации в случаях и порядке, которые установлены федеральными законами.&quot;.</span></p></div>
+<div class="block new-block" id="right-15" data-left-index="4"><span class="stat-badge new-badge">статья: 4</span><p class="para-text"><span class="added">Статья 4</span></p></div>
+<div class="block unchanged" id="right-16" data-left-index="5"><p class="para-text">Внести в Федеральный закон от 3 декабря 2008 года № 242-ФЗ &quot;О государственной геномной регистрации в Российской Федерации&quot; (Собрание законодательства Российской Федерации, 2008, № 49, ст. 5740; 2023, № 6, ст. 915; 2024, № 8, ст. 1043; № 33, ст. 4949) следующие изменения:</p></div>
+<div class="block unchanged" id="right-17" data-left-index="6"><p class="para-text">1) в части 1 статьи 7:</p></div>
+<div class="block unchanged" id="right-18" data-left-index="7"><p class="para-text">а) пункт 5 дополнить словами &quot;, если в отношении этого лица отсутствует геномная информация&quot;;</p></div>
+<div class="block unchanged" id="right-19" data-left-index="8"><p class="para-text">б) дополнить пунктами 6 - 10 следующего содержания:</p></div>
+<div class="block unchanged" id="right-20" data-left-index="9"><p class="para-text">&quot;6) военнослужащие, проходящие военную службу по контракту
+в Вооруженных Силах Российской Федерации (граждане, призванные на военную службу по мобилизации), войсках национальной гвардии Российской Федерации, направляемые для участия в боевых действиях, контртеррористических операциях, выполнения задач в период мобилизации, в условиях чрезвычайного или военного положения, военного времени, вооруженных конфликтов, а также для участия
+в деятельности по поддержанию или восстановлению международного мира и безопасности либо участия в операциях, проводимых Вооруженными Силами Российской Федерации, войсками национальной гвардии Российской Федерации, в том числе для выполнения задач
+по пресечению международной террористической деятельности
+за пределами территории Российской Федерации, за исключением военнослужащих, проходящих военную службу в органах, объединениях, соединениях, воинских частях и организациях (на отдельных воинских должностях), перечень которых устанавливается соответственно Министерством обороны Российской Федерации и Федеральной службой войск национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="right-21" data-left-index="10"><p class="para-text">7) граждане Российской Федерации, пребывающие
+в добровольческих формированиях, содействующих выполнению задач, возложенных на Вооруженные Силы Российской Федерации (войска национальной гвардии Российской Федерации), в период мобилизации,
+в период действия военного положения, в военное время,
+при возникновении вооруженных конфликтов, при проведении контртеррористических операций, а также при использовании Вооруженных Сил Российской Федерации (войск национальной гвардии Российской Федерации) за пределами территории Российской Федерации;</p></div>
+<div class="block changed" id="right-22" data-left-index="11"><span class="stat-badge">статья: 4,
+пункт: 8</span><p class="para-text">8) лица, проходящие службу в войсках национальной гвардии Российской Федерации <span class="added">(граждане,</span> <span class="added">направленные</span> <span class="added">на</span> <span class="added">службу</span> <span class="added">по</span> <span class="added">мобилизации)</span> и имеющие специальные звания полиции, направляемые для участия в боевых действиях, контртеррористических операциях, выполнения задач в период мобилизации, в условиях чрезвычайного или военного положения, военного времени, вооруженных конфликтов, а также для участия в операциях, проводимых войсками национальной гвардии Российской Федерации, в том числе для выполнения задач по <span class="added">борьбе</span> <span class="added">с</span> <span class="added">экстремизмом</span> <span class="added">и</span> <span class="added">терроризмом</span> <span class="added">и</span> <span class="added">иных</span> <span class="added">задач,</span> <span class="added">возложенных</span> <span class="added">на</span> <span class="added">войска</span> <span class="added">национальной</span> <span class="added">гвардии</span> <span class="added">Российской</span> <span class="added">Федерации</span> <span class="added">решениями</span> <span class="added">Президента</span> Российской Федерации, за исключением лиц, проходящих службу в органах, подразделениях и организациях (на отдельных должностях) войск национальной гвардии Российской Федерации и имеющих специальные звания полиции, перечень которых устанавливается Федеральной службой войск национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="right-23" data-left-index="12"><p class="para-text">9) сотрудники органов внутренних дел Российской Федерации, направляемые для участия в контртеррористических операциях, специальных и иных определенных Президентом Российской Федерации операциях и выполнения задач в области территориальной обороны
+в условиях вооруженного конфликта, за исключением сотрудников подразделений Министерства внутренних дел Российской Федерации
+и подразделений территориальных органов Министерства внутренних дел Российской Федерации, перечень которых устанавливается Министерством внутренних дел Российской Федерации;</p></div>
+<div class="block unchanged" id="right-24" data-left-index="13"><p class="para-text">10) федеральные государственные гражданские служащие и работники органов, объединений, соединений, воинских частей и организаций Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации, направляемые для обеспечения выполнения боевых (специальных) задач в период мобилизации, в условиях чрезвычайного
+или военного положения, военного времени, вооруженных конфликтов, при проведении контртеррористических операций, а также для участия
+в деятельности по поддержанию или восстановлению международного мира и безопасности либо участия в операциях, проводимых Вооруженными Силами Российской Федерации, войсками национальной гвардии Российской Федерации, в том числе для выполнения задач по пресечению международной террористической деятельности за пределами территории Российской Федерации, за исключением федеральных государственных гражданских служащих и работников органов, объединений, соединений, воинских частей и организаций, перечень которых устанавливается соответственно Министерством обороны Российской Федерации
+и Федеральной службой войск национальной гвардии Российской Федерации.&quot;;</p></div>
+<div class="block unchanged" id="right-25" data-left-index="14"><p class="para-text">2) часть 1 статьи 9 дополнить пунктом 2^3^ следующего содержания:</p></div>
+<div class="block unchanged" id="right-26" data-left-index="15"><p class="para-text">&quot;2^3^) лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, проводится органами, объединениями, соединениями, воинскими частями и организациями Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации и органами внутренних дел Российской Федерации совместно с подразделениями органов внутренних дел Российской Федерации, к компетенции которых относится указанный вид деятельности;&quot;;</p></div>
+<div class="block unchanged" id="right-27" data-left-index="16"><p class="para-text">3) статью 12 дополнить частью 2^1^ следующего содержания:</p></div>
+<div class="block changed" id="right-28" data-left-index="17"><span class="stat-badge">статья: 4,
+пункт: 3</span><p class="para-text">&quot;2^1^. Геномная информация, полученная при проведении государственной геномной регистрации лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, хранится до достижения ими возраста 100 лет, за исключением случая, предусмотренного частью 2^1^ статьи 16 настоящего Федерального закона, а в случае их гибели (смерти) - до установления <span class="added">личности</span> <span class="added">таких</span> <span class="added">лиц,</span> в том числе при необходимости с использованием геномной информации.&quot;;</p></div>
+<div class="block unchanged" id="right-29" data-left-index="18"><p class="para-text">4) часть 1 статьи 13 дополнить пунктом 3^4^ следующего содержания:</p></div>
+<div class="block unchanged" id="right-30" data-left-index="19"><p class="para-text">&quot;3^4^) от лиц, указанных в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, - уполномоченными должностными лицами Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации и органов внутренних дел Российской Федерации;&quot;;</p></div>
+<div class="block unchanged" id="right-31" data-left-index="20"><p class="para-text">5) в пункте 2 части 1 статьи 14 слова &quot;в пунктах 1 и 5&quot; заменить словами &quot;в пунктах 1, 5 - 10&quot;;</p></div>
+<div class="block unchanged" id="right-32" data-left-index="21"><p class="para-text">6) статью 16 дополнить частью 2^1^ следующего содержания:</p></div>
+<div class="block unchanged" id="right-33" data-left-index="22"><p class="para-text">&quot;2^1^. Геномная информация, полученная в результате проведения обязательной государственной геномной регистрации лиц, указанных
+в пунктах 6 - 10 части 1 статьи 7 настоящего Федерального закона, может быть уничтожена на основании письменного заявления:</p></div>
+<div class="block unchanged" id="right-34" data-left-index="23"><p class="para-text">1) лиц, указанных в пункте 6 части 1 статьи 7 настоящего Федерального закона, - после увольнения с военной службы;</p></div>
+<div class="block changed" id="right-35" data-left-index="23"><span class="stat-badge">статья: 4,
+пункт: 2</span><p class="para-text"><span class="added">2)</span> лиц, указанных в пункте <span class="added">7</span> части 1 статьи 7 настоящего Федерального закона, - после <span class="added">исключения</span> <span class="added">из</span> <span class="added">добровольческих</span> <span class="added">формирований;</span></p></div>
+<div class="block unchanged" id="right-36" data-left-index="25"><p class="para-text">3) лиц, указанных в пункте 8 части 1 статьи 7 настоящего Федерального закона, - после увольнения со службы в войсках национальной гвардии Российской Федерации;</p></div>
+<div class="block unchanged" id="right-37" data-left-index="26"><p class="para-text">4) лиц, указанных в пункте 9 части 1 статьи 7 настоящего Федерального закона, - после увольнения из органов внутренних дел Российской Федерации;</p></div>
+<div class="block unchanged" id="right-38" data-left-index="27"><p class="para-text">5) лиц, указанных в пункте 10 части 1 статьи 7 настоящего Федерального закона, - после увольнения с федеральной государственной гражданской службы в органах, объединениях, соединениях, воинских
+частях и организациях Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации, увольнения из органов, объединений, соединений, воинских частей и организаций Вооруженных Сил Российской Федерации, войск национальной гвардии Российской Федерации.&quot;.</p></div>
+<div class="block new-block" id="right-39" data-left-index="4"><span class="stat-badge new-badge">статья: 5</span><p class="para-text"><span class="added">Статья 5</span></p></div>
+<div class="block new-block" id="right-40" data-left-index="5"><span class="stat-badge new-badge">статья: 5</span><p class="para-text"><span class="added">Часть 7 статьи 25 Федерального закона от 7 февраля 2011 года № 3-ФЗ &quot;О полиции&quot; (Собрание законодательства Российской Федерации, 2011, № 7, ст. 900; 2013, № 27, ст. 3477; 2021, № 52, ст. 8983) изложить в следующей редакции:</span></p></div>
+<div class="block new-block" id="right-41" data-left-index="3"><span class="stat-badge new-badge">статья: 5</span><p class="para-text"><span class="added">&quot;7. Сотрудник полиции в соответствии с федеральными законами подлежит обязательной государственной дактилоскопической регистрации в порядке, определяемом федеральным органом исполнительной власти в сфере внутренних дел, а также обязательной государственной геномной регистрации в порядке, определяемом Правительством Российской Федерации.&quot;.</span></p></div>
+<div class="block new-block" id="right-42" data-left-index="4"><span class="stat-badge new-badge">статья: 6</span><p class="para-text"><span class="added">Статья 6</span></p></div>
+<div class="block new-block" id="right-43" data-left-index="26"><span class="stat-badge new-badge">статья: 6</span><p class="para-text"><span class="added">В пункте 20 части 1 статьи 12 Федерального закона от 30 ноября 2011 года № 342-ФЗ &quot;О службе в органах внутренних дел Российской Федерации и внесении изменений в отдельные законодательные акты Российской Федерации&quot; (Собрание законодательства Российской Федерации, 2011, № 49, ст. 7020; 2012, № 50, ст. 6954; 2013, № 27, ст. 3477; № 48, ст. 6165; 2014, № 49, ст. 6928; № 52, ст. 7542; 2015, № 29, ст. 4356; 2016, № 27, ст. 4233; 2019, № 30, ст. 4134; 2021, № 18, ст. 3060; 2025, № 52, ст. 8292) слова &quot;в соответствии с федеральным законом&quot; заменить словами &quot;и обязательную государственную геномную регистрацию в соответствии с федеральными законами&quot;.</span></p></div>
+<div class="block new-block" id="right-44" data-left-index="4"><span class="stat-badge new-badge">статья: 7</span><p class="para-text"><span class="added">Статья 7</span></p></div>
+<div class="block new-block" id="right-45" data-left-index="5"><span class="stat-badge new-badge">статья: 7</span><p class="para-text"><span class="added">Часть 5 статьи 24 Федерального закона от 3 июля 2016 года № 226-ФЗ &quot;О войсках национальной гвардии Российской Федерации&quot; (Собрание законодательства Российской Федерации, 2016, № 27, ст. 4159; 2018, № 31, ст. 4853; 2020, № 12, ст. 1656; 2023, № 32, ст. 6168, 6178) после слов &quot;дактилоскопической регистрации&quot; дополнить словами &quot;и обязательной государственной геномной регистрации&quot;.</span></p></div>
+<div class="block new-block" id="right-46" data-left-index="4"><span class="stat-badge new-badge">статья: 8</span><p class="para-text"><span class="added">Статья 8</span></p></div>
+<div class="block unchanged" id="right-47" data-left-index="29"><p class="para-text">Настоящий Федеральный закон вступает в силу по истечении девяноста дней после дня его официального опубликования.</p></div>
+<div class="block changed" id="right-48" data-left-index="31"><p class="para-text"><span class="added">Президент</span> Российской Федерации <span class="added">В.Путин</span></p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const leftPane  = document.getElementById('left-pane');
+  const rightPane = document.getElementById('right-pane');
+
+  // Track which pane the cursor is currently over
+  let activePane = null; // 'left' | 'right' | null
+
+  leftPane.addEventListener('mouseenter',  () => { activePane = 'left';  });
+  leftPane.addEventListener('mouseleave',  () => { if (activePane === 'left')  activePane = null; });
+  rightPane.addEventListener('mouseenter', () => { activePane = 'right'; });
+  rightPane.addEventListener('mouseleave', () => { if (activePane === 'right') activePane = null; });
+
+  const rightBlocks = [...rightPane.querySelectorAll('.block[data-left-index]')];
+  const leftBlocks  = [...leftPane.querySelectorAll('.block[data-rel-index]')];
+
+  let isSyncing = false;
+
+  function scrollOppositeTo(srcPane, dstPane, blocks, attrName, idPrefix) {
+    if (isSyncing) return;
+    isSyncing = true;
+
+    const srcTop    = srcPane.getBoundingClientRect().top;
+    const srcHeight = srcPane.clientHeight;
+
+    let best = null, bestScore = -Infinity;
+    for (const b of blocks) {
+      const r = b.getBoundingClientRect();
+      const visible = Math.min(r.bottom, srcTop + srcHeight) - Math.max(r.top, srcTop);
+      if (visible > bestScore) { bestScore = visible; best = b; }
+    }
+
+    if (best) {
+      const idx = best.getAttribute(attrName);
+      if (idx !== '' && idx !== null) {
+        const target = document.getElementById(idPrefix + idx);
+        if (target) {
+          const ph = dstPane.clientHeight;
+          dstPane.scrollTop = target.offsetTop - ph / 2 + target.clientHeight / 2;
+        }
+      }
+    }
+
+    requestAnimationFrame(() => { isSyncing = false; });
+  }
+
+  // Cursor on LEFT → sync RIGHT
+  leftPane.addEventListener('scroll', () => {
+    if (activePane !== 'left') return;
+    scrollOppositeTo(leftPane, rightPane, leftBlocks, 'data-rel-index', 'right-');
+  });
+
+  // Cursor on RIGHT → sync LEFT
+  rightPane.addEventListener('scroll', () => {
+    if (activePane !== 'right') return;
+    scrollOppositeTo(rightPane, leftPane, rightBlocks, 'data-left-index', 'left-');
+  });
+
+  // ── Click highlight ──────────────────────────────────────────────────────
+  function clearHighlights() {
+    document.querySelectorAll('.block.highlighted').forEach(b => b.classList.remove('highlighted'));
+  }
+
+  leftPane.addEventListener('click', (e) => {
+    const block = e.target.closest('.block');
+    if (!block) return;
+    clearHighlights();
+    block.classList.add('highlighted');
+    const relIdx = block.getAttribute('data-rel-index');
+    if (relIdx !== '' && relIdx !== null) {
+      const peer = document.getElementById('right-' + relIdx);
+      if (peer) peer.classList.add('highlighted');
+    }
+  });
+
+  rightPane.addEventListener('click', (e) => {
+    const block = e.target.closest('.block');
+    if (!block) return;
+    clearHighlights();
+    block.classList.add('highlighted');
+    const leftIdx = block.getAttribute('data-left-index');
+    if (leftIdx !== '' && leftIdx !== null) {
+      const peer = document.getElementById('left-' + leftIdx);
+      if (peer) peer.classList.add('highlighted');
+    }
+  });
+})();
+</script>
+</body>
+</html>
