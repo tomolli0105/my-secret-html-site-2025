@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Document Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [],
+    displayMath: [['$$', '$$']],
+    processEscapes: false
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+  :root {
+    --bg:           #ffffff;
+    --surface:      #f5f5f5;
+    --border:       #d0d0d0;
+    --text:         #1a1a1a;
+    --muted:        #888888;
+    --accent:       #2563eb;
+    --unchanged-bg: #ffffff;
+    --changed-bg:   #eff6ff;
+    --removed-bg:   #fff5f5;
+    --new-bg:       #f0fdf4;
+    --added-color:  #b45309;
+    --added-bg:     rgba(245,200,66,.28);
+    --removed-color:#c0392b;
+    --removed-bg-w: rgba(192,57,43,.12);
+    --header-h:     52px;
+    --label-h:      36px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; line-height: 1.65;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    height: var(--header-h); background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px; gap: 16px; flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600;
+    color: var(--accent); letter-spacing: .03em;
+  }
+  .legend { display: flex; gap: 18px; margin-left: auto; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .ld-unchanged { background: var(--border); }
+  .ld-changed   { background: var(--accent); }
+  .ld-removed   { background: var(--removed-color); }
+  .ld-new       { background: var(--added-color); }
+
+  /* PANE LABELS */
+  .pane-labels {
+    display: flex; height: var(--label-h); background: var(--surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .pane-label {
+    flex: 1; display: flex; align-items: center; padding: 0 20px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .pane-label:first-child { border-right: 1px solid var(--border); color: #1d4ed8; }
+  .pane-label:last-child  { color: #166534; }
+
+  /* PANES */
+  .panes { flex: 1; display: flex; overflow: hidden; }
+  .pane  { flex: 1; overflow-y: scroll; padding: 16px 0; scroll-behavior: smooth; }
+  .pane:first-child { border-right: 1px solid var(--border); }
+
+  /* BLOCKS */
+  .block {
+    padding: 12px 20px;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid transparent;
+    transition: background .15s, box-shadow .15s;
+    cursor: default; position: relative;
+  }
+  .block:hover      { box-shadow: inset 0 0 0 1px var(--border); }
+  .block.highlighted { box-shadow: 0 0 0 2px var(--accent) inset; z-index: 2; }
+  .unchanged { background: var(--unchanged-bg); }
+  .changed   { background: var(--changed-bg); border-left-color: var(--accent); border-bottom-color: #bfdbfe; }
+  .removed   { background: var(--removed-bg); border-left-color: var(--removed-color); }
+  .new-block { background: var(--new-bg);     border-left-color: var(--added-color); }
+
+  .para-text { font-size: 13.5px; line-height: 1.7; color: var(--text); }
+
+  /* INLINE DIFF SPANS */
+  span.added   { background: var(--added-bg);   color: var(--added-color);   border-radius: 2px; padding: 0 2px; }
+  span.removed { background: var(--removed-bg-w); color: var(--removed-color); text-decoration: line-through; border-radius: 2px; padding: 0 2px; }
+
+  /* BLOCKQUOTE — centred lines */
+  .blockquote { text-align: center; padding: 6px 8px; }
+  .bq-line    { display: block; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+
+  /* COLOPHON — small muted, not body text */
+  .colophon {
+    font-size: 10.5px; color: var(--muted); font-style: italic;
+    padding: 2px 0; line-height: 1.5; border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+
+  /* TABLES */
+  .md-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0; }
+  .md-table th,
+  .md-table td { border: 1px solid var(--border); padding: 5px 8px; vertical-align: top; line-height: 1.45; }
+  .md-table th  { background: var(--surface); font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .md-table tr.row-removed td { background: rgba(192,57,43,.08); }
+  .md-table tr.row-new     td { background: rgba(21,128,61,.08); }
+
+  /* STAT BADGE */
+  .stat-badge {
+    display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    padding: 1px 6px; border-radius: 3px; margin-bottom: 5px;
+    background: rgba(37,99,235,.08); color: #1d4ed8; border: 1px solid rgba(37,99,235,.2);
+  }
+  .removed-badge { background: rgba(192,57,43,.08); color: var(--removed-color); border-color: rgba(192,57,43,.2); }
+  .new-badge     { background: rgba(180,83,9,.08);  color: var(--added-color);   border-color: rgba(180,83,9,.2); }
+
+  /* SCROLLBAR */
+  .pane::-webkit-scrollbar       { width: 6px; }
+  .pane::-webkit-scrollbar-track { background: var(--bg); }
+  .pane::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
+  .pane::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Document Comparison</h1>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-unchanged"></div>Без изменений</div>
+    <div class="legend-item"><div class="legend-dot ld-changed"></div>Изменён</div>
+    <div class="legend-item"><div class="legend-dot ld-removed"></div>Удалён</div>
+    <div class="legend-item"><div class="legend-dot ld-new"></div>Новый</div>
+  </div>
+</header>
+
+<div class="pane-labels">
+  <div class="pane-label">◂ Предыдущая редакция</div>
+  <div class="pane-label">▸ Новая редакция</div>
+</div>
+
+<div class="panes">
+  <div class="pane" id="left-pane">
+<div class="block unchanged" id="left-0" data-rel-index="0" data-jac="1.0"><p class="para-text">ПРОЕКТ</p></div>
+<div class="block removed" id="left-1" data-rel-index="4" data-jac="0.07142857142857142"><p class="para-text"><span class="removed">ПОСТАНОВЛЕНИЕ</span></p></div>
+<div class="block changed" id="left-2" data-rel-index="5" data-jac="0.5"><p class="para-text">ПРАВИТЕЛЬСТВА РОССИЙСКОЙ ФЕДЕРАЦИИ</p></div>
+<div class="block changed" id="left-3" data-rel-index="6" data-jac="0.375"><p class="para-text">От <span class="removed">_____2025</span> г. <span class="removed">№_____</span></p></div>
+<div class="block changed" id="left-4" data-rel-index="8" data-jac="0.8846153846153846"><p class="para-text"><span class="removed">&quot;О</span> <span class="removed">порядке</span> учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор) и <span class="removed">порядке</span> информационного взаимодействия при передаче данных сведений&quot;</p></div>
+<div class="block changed" id="left-5" data-rel-index="2" data-jac="0.56"><p class="para-text">В соответствии <span class="removed">с</span> <span class="removed">частью</span> <span class="removed">12</span> <span class="removed">статьи</span> 22.1 Федерального закона <span class="removed">от</span> <span class="removed">30.03.1999</span> <span class="removed">N</span> <span class="removed">52-ФЗ</span> &quot;О санитарно-эпидемиологическом благополучии населения&quot; Правительство Российской Федерации постановляет:</p></div>
+<div class="block changed" id="left-6" data-rel-index="3" data-jac="0.6666666666666666"><span class="stat-badge">часть: 1</span><p class="para-text">1. Утвердить прилагаемые:</p></div>
+<div class="block changed" id="left-7" data-rel-index="8" data-jac="0.6666666666666666"><span class="stat-badge">часть: 1</span><p class="para-text"><span class="removed">-</span> <span class="removed">порядок</span> учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор) <span class="removed">(Приложение</span> <span class="removed">1);</span></p></div>
+<div class="block removed" id="left-8" data-rel-index="8" data-jac="0.2222222222222222"><span class="stat-badge removed-badge">часть: 1</span><p class="para-text"><span class="removed">- порядок информационного взаимодействия при передаче данных сведений (Приложение 2).</span></p></div>
+<div class="block removed" id="left-9" data-rel-index="4" data-jac="0.2631578947368421"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">2. Настоящее постановление вступает в силу со дня его официального опубликования.</span></p></div>
+<div class="block removed" id="left-10" data-rel-index="4" data-jac="0.06666666666666667"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">Приложение 1</span></p></div>
+<div class="block changed" id="left-11" data-rel-index="6" data-jac="0.625"><span class="stat-badge">часть: 2</span><div class="blockquote"><div class="bq-line">УТВЕРЖДЕНЫ постановлением Правительства Российской Федерации</div></div></div>
+<div class="block removed" id="left-12" data-rel-index="6" data-jac="0.125"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">от __________ №___________</span></p></div>
+<div class="block changed" id="left-13" data-rel-index="8" data-jac="0.72"><span class="stat-badge">часть: 2</span><p class="para-text"><span class="removed">Порядок</span> учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор)</p></div>
+<div class="block removed" id="left-14" data-rel-index="" data-jac="0.0"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">I. Общие положения</span></p></div>
+<div class="block changed" id="left-15" data-rel-index="8" data-jac="0.5428571428571428"><span class="stat-badge">часть: 1</span><p class="para-text"><span class="removed">1.</span> <span class="removed">Настоящие</span> <span class="removed">Правила</span> <span class="removed">устанавливают</span> <span class="removed">порядок</span> учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор) <span class="removed">в</span> <span class="removed">целях</span> <span class="removed">осуществления</span> <span class="removed">единого</span> <span class="removed">учета</span> <span class="removed">в</span> <span class="removed">области</span> <span class="removed">обращения</span> <span class="removed">с</span> <span class="removed">медицинскими</span> <span class="removed">отходами.</span></p></div>
+<div class="block removed" id="left-16" data-rel-index="10" data-jac="0.12307692307692308"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">2. К медицинским отходам относятся все виды отходов, в том числе анатомические, патолого-анатомические, биохимические, микробиологические и физиологические, образующиеся в процессе осуществления медицинской деятельности и фармацевтической деятельности, деятельности по производству лекарственных средств и медицинских изделий, деятельности в области использования возбудителей инфекционных заболеваний и генно-инженерно-модифицированных организмов в медицинских целях, а также при производстве, хранении биомедицинских клеточных продуктов[<sup>1].</sup></span></p></div>
+<div class="block removed" id="left-17" data-rel-index="10" data-jac="0.1590909090909091"><span class="stat-badge removed-badge">часть: 3</span><p class="para-text"><span class="removed">3. Критерии разделения медицинских отходов на классы по степени эпидемиологической, токсикологической, радиационной опасности, а также негативного воздействия на среду обитания определяются Правительством Российской Федерации[<sup>2].</sup></span></p></div>
+<div class="block removed" id="left-18" data-rel-index="23" data-jac="0.13043478260869565"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">4. Обращение с медицинскими отходами осуществляется в соответствии с законодательством[<sup>3]</sup> в области обеспечения санитарно-эпидемиологического благополучия населения.</span></p></div>
+<div class="block changed" id="left-19" data-rel-index="8" data-jac="0.6538461538461539"><span class="stat-badge">часть: 4</span><p class="para-text"><span class="removed">II.</span> <span class="removed">Порядок</span> учета медицинских отходов, включая состав сведений, подлежащих <span class="removed">передачи</span> в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор)</p></div>
+<div class="block changed" id="left-20" data-rel-index="17" data-jac="0.4444444444444444"><span class="stat-badge">часть: 5</span><p class="para-text"><span class="removed">5.</span> <span class="removed">Учет</span> <span class="removed">медицинских</span> <span class="removed">отходов,</span> <span class="removed">включая</span> состав сведений, подлежащих передаче,</p></div>
+<div class="block removed" id="left-21" data-rel-index="" data-jac="0.0"><span class="stat-badge removed-badge">часть: 5</span><p class="para-text"><span class="removed">осуществляют:</span></p></div>
+<div class="block removed" id="left-22" data-rel-index="14" data-jac="0.08571428571428572"><span class="stat-badge removed-badge">часть: 5,
+подпункт: а</span><p class="para-text"><span class="removed">а) лица, в результате деятельности которых образуются медицинские отходы;</span></p></div>
+<div class="block removed" id="left-23" data-rel-index="18" data-jac="0.2857142857142857"><span class="stat-badge removed-badge">часть: 5,
+подпункт: б</span><p class="para-text"><span class="removed">б) иные лица, осуществляющие обеззараживание медицинских отходов;</span></p></div>
+<div class="block removed" id="left-24" data-rel-index="18" data-jac="0.2857142857142857"><span class="stat-badge removed-badge">часть: 5,
+подпункт: в</span><p class="para-text"><span class="removed">в) лица, осуществляющие транспортирование, обезвреживание медицинских отходов.</span></p></div>
+<div class="block removed" id="left-25" data-rel-index="7" data-jac="0.13043478260869565"><span class="stat-badge removed-badge">часть: 6</span><p class="para-text"><span class="removed">6. Учету подлежат объем и (или) масса медицинских отходов лицами, указанными в п.4 настоящего Постановления, на следующих этапах их перемещения:</span></p></div>
+<div class="block removed" id="left-26" data-rel-index="34" data-jac="0.16666666666666666"><span class="stat-badge removed-badge">часть: 6,
+подпункт: а</span><p class="para-text"><span class="removed">а) образованных, переданных на хранение, захоронение и (или) размещение, сжигание, сортировку и (или) переработку медицинских отходов класса А;</span></p></div>
+<div class="block removed" id="left-27" data-rel-index="34" data-jac="0.16"><span class="stat-badge removed-badge">часть: 6,
+подпункт: б</span><p class="para-text"><span class="removed">б) образованных, переданных на хранение, на обезвреживание (обеззараживание), захоронение и (или) размещение, сортировку и (или) переработку медицинских отходов класса Б;</span></p></div>
+<div class="block removed" id="left-28" data-rel-index="23" data-jac="0.16666666666666666"><span class="stat-badge removed-badge">часть: 6,
+подпункт: в</span><p class="para-text"><span class="removed">в) образованных и переданных на хранение, на обезвреживание (обеззараживание), захоронение и (или) размещение, сортировку и (или) переработку медицинских отходов класса В;</span></p></div>
+<div class="block removed" id="left-29" data-rel-index="34" data-jac="0.18181818181818182"><span class="stat-badge removed-badge">часть: 6,
+подпункт: г</span><p class="para-text"><span class="removed">г) образованных, переданных на хранение, захоронение и (или) размещение, сжигание медицинских отходов класса Г;</span></p></div>
+<div class="block removed" id="left-30" data-rel-index="34" data-jac="0.21052631578947367"><span class="stat-badge removed-badge">часть: 6,
+подпункт: д</span><p class="para-text"><span class="removed">д) образованных, переданных на хранение и захоронение медицинских отходов класса Д.</span></p></div>
+<div class="block unchanged" id="left-31" data-rel-index="17" data-jac="1.0"><p class="para-text">7. Состав сведений, подлежащих передаче включает:</p></div>
+<div class="block changed" id="left-32" data-rel-index="18" data-jac="0.75"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> класс <span class="removed">опасности</span> медицинских отходов;</p></div>
+<div class="block changed" id="left-33" data-rel-index="19" data-jac="0.4166666666666667"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> <span class="removed">наличие</span> медицинских отходов на начало года <span class="removed">(масса);</span></p></div>
+<div class="block changed" id="left-34" data-rel-index="20" data-jac="0.6363636363636364"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> количество <span class="removed">(масса)</span> образованных медицинских отходов за отчетный период;</p></div>
+<div class="block changed" id="left-35" data-rel-index="21" data-jac="0.45454545454545453"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> количество <span class="removed">(масса)</span> медицинских отходов от других хозяйствующих субъектов за отчетный период <span class="removed">(для</span> <span class="removed">лиц,</span> <span class="removed">указанных</span> <span class="removed">в</span> <span class="removed">п.</span> <span class="removed">5</span> <span class="removed">б);</span></p></div>
+<div class="block changed" id="left-36" data-rel-index="22" data-jac="0.6153846153846154"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> количество <span class="removed">(масса)</span> медицинских отходов обезвреженных (обеззараженных) за отчетный период;</p></div>
+<div class="block removed" id="left-37" data-rel-index="25" data-jac="0.2692307692307692"><span class="stat-badge removed-badge">часть: 7</span><p class="para-text"><span class="removed">- количество (масса) медицинских отходов, переданных на размещение (класса Б, В, Г для обезвреживания (обеззараживания), класса А, Д для хранения и (или) захоронения);</span></p></div>
+<div class="block changed" id="left-38" data-rel-index="24" data-jac="0.6363636363636364"><span class="stat-badge">часть: 7</span><p class="para-text"><span class="removed">-</span> остаток медицинских отходов на конец отчетного периода <span class="removed">(масса).</span></p></div>
+<div class="block removed" id="left-39" data-rel-index="25" data-jac="0.2222222222222222"><span class="stat-badge removed-badge">часть: 8</span><p class="para-text"><span class="removed">8. Учет массы медицинских отходов осуществляется расчетным путем исходя из:</span></p></div>
+<div class="block changed" id="left-40" data-rel-index="26" data-jac="0.6666666666666666"><span class="stat-badge">часть: 8,
+подпункт: а</span><p class="para-text">а) количества и объема контейнеров и (или) бункеров для накопления медицинских отходов, установленных в местах накопления медицинских отходов, в которых осуществляется сбор и накопление медицинских отходов, в показателях объема с учетом графика опорожнения <span class="removed">емкостей,</span> а также <span class="removed">с</span> <span class="removed">учетом</span> средней плотности медицинских отходов;</p></div>
+<div class="block removed" id="left-41" data-rel-index="31" data-jac="0.16666666666666666"><span class="stat-badge removed-badge">часть: 8,
+подпункт: а</span><p class="para-text"><span class="removed">или</span></p></div>
+<div class="block changed" id="left-42" data-rel-index="27" data-jac="0.5"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text">б) массы медицинских отходов, <span class="removed">определенной</span> с использованием средств измерения (весы).</p></div>
+<div class="block removed" id="left-43" data-rel-index="28" data-jac="0.3125"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">В случае, указанном в абзаце первом настоящего пункта, учет массы медицинских отходов, образованных потребителем, осуществляется в показателях массы (M) по формуле (1):</span></p></div>
+<div class="block removed" id="left-44" data-rel-index="4" data-jac="0.07142857142857142"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">$$M = V \times \rho$$ (1)</span></p></div>
+<div class="block changed" id="left-45" data-rel-index="30" data-jac="0.7142857142857143"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text">где: M масса (кг) -- масса медицинских отходов;</p></div>
+<div class="block unchanged" id="left-46" data-rel-index="38" data-jac="1.0"><p class="para-text">V объем (м<sup>3</sup>) -- объем контейнера, бункера;</p></div>
+<div class="block changed" id="left-47" data-rel-index="32" data-jac="0.6"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text">ρ -- плотность медицинских отходов.</p></div>
+<div class="block removed" id="left-48" data-rel-index="33" data-jac="0.2"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">Общая масса за определенный период суммируется исходя из кратности наполнения контейнеров и (или) бункеров (общего объема) за учитываемый период.</span></p></div>
+<div class="block removed" id="left-49" data-rel-index="9" data-jac="0.14285714285714285"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">Сведения об объеме и (или) массе медицинских отходов указываются в договоре со сторонними юридическими лицами, гражданами, занимающимися предпринимательской деятельностью без образования юридического лица (индивидуальные предприниматели), осуществляющими деятельность в области обращения с медицинскими отходами.</span></p></div>
+<div class="block removed" id="left-50" data-rel-index="34" data-jac="0.2647058823529412"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">Определение плотности медицинских отходов осуществляется лицами, указанными в п.5 настоящего Постановления, самостоятельно, путем взвешивания определенного объема и массы отходов одного класса за любом период, а затем определяется по формуле (2):</span></p></div>
+<div class="block removed" id="left-51" data-rel-index="10" data-jac="0.03571428571428571"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">$$\rho = \frac{M}{V}$$ (2)</span></p></div>
+<div class="block changed" id="left-52" data-rel-index="36" data-jac="0.6666666666666666"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text">где: ρ -- плотность медицинских отходов;</p></div>
+<div class="block changed" id="left-53" data-rel-index="37" data-jac="0.6666666666666666"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text">M масса (кг) -- масса медицинских отходов;</p></div>
+<div class="block unchanged" id="left-54" data-rel-index="38" data-jac="1.0"><p class="para-text">V объем (м<sup>3</sup>) -- объем контейнера, бункера.</p></div>
+<div class="block changed" id="left-55" data-rel-index="39" data-jac="0.3783783783783784"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">При</span> <span class="removed">расчете</span> <span class="removed">показателя</span> <span class="removed">плотности</span> <span class="removed">необходимо</span> <span class="removed">обеспечить</span> <span class="removed">репрезентативность</span> <span class="removed">и</span> <span class="removed">достоверность</span> <span class="removed">показателей.</span> Рассчитанный показатель плотности может быть использован при последующих расчетах для перевода объема в массу.</p></div>
+<div class="block removed" id="left-56" data-rel-index="40" data-jac="0.3333333333333333"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">В случае, указанном в абзаце втором настоящего пункта, учет массы медицинских отходов, образованных лицами, указанными в п.5 настоящего Постановления, осуществляется путем фактического измерения массы медицинских отходов (с помощью весов).</span></p></div>
+<div class="block removed" id="left-57" data-rel-index="12" data-jac="0.20588235294117646"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">При передаче медицинских отходов оператору по обращению с отходами сообщается информация об их объеме и (или) массе.</span></p></div>
+<div class="block removed" id="left-58" data-rel-index="10" data-jac="0.034482758620689655"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">Приложение 2</span></p></div>
+<div class="block changed" id="left-59" data-rel-index="6" data-jac="0.625"><span class="stat-badge">часть: 2</span><div class="blockquote"><div class="bq-line">УТВЕРЖДЕНЫ постановлением Правительства Российской Федерации</div></div></div>
+<div class="block removed" id="left-60" data-rel-index="6" data-jac="0.125"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">от __________ №___________</span></p></div>
+<div class="block changed" id="left-61" data-rel-index="8" data-jac="0.5925925925925926"><span class="stat-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">Порядок</span> <span class="removed">информационного</span> <span class="removed">взаимодействия</span> <span class="removed">при</span> передаче <span class="removed">сведений</span> <span class="removed">о</span> <span class="removed">медицинских</span> <span class="removed">отходах</span> в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор)</p></div>
+<div class="block removed" id="left-62" data-rel-index="" data-jac="0.0"><span class="stat-badge removed-badge">часть: 8,
+подпункт: б</span><p class="para-text"><span class="removed">I. Общие положения</span></p></div>
+<div class="block changed" id="left-63" data-rel-index="8" data-jac="0.42105263157894735"><span class="stat-badge">часть: 1</span><p class="para-text"><span class="removed">1.</span> <span class="removed">Настоящие</span> <span class="removed">Правила</span> <span class="removed">устанавливают</span> <span class="removed">порядок</span> <span class="removed">информационного</span> <span class="removed">взаимодействия</span> <span class="removed">при</span> передаче <span class="removed">сведений</span> в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор) <span class="removed">в</span> <span class="removed">целях</span> <span class="removed">осуществления</span> <span class="removed">единого</span> <span class="removed">порядка</span> <span class="removed">передачи</span> <span class="removed">информации</span> <span class="removed">в</span> <span class="removed">области</span> <span class="removed">обращения</span> <span class="removed">с</span> <span class="removed">медицинскими</span> <span class="removed">отходами.</span></p></div>
+<div class="block changed" id="left-64" data-rel-index="41" data-jac="0.59375"><span class="stat-badge">часть: 2</span><p class="para-text"><span class="removed">2.</span> Передача сведений о массе <span class="removed">образованных</span> медицинских отходов по <span class="removed">классам</span> осуществляется путем заполнения формы Федерального статистического наблюдения <span class="removed">&quot;Формы</span> <span class="removed">N</span> <span class="removed">2-Медотходы</span> <span class="removed">&quot;Сведения</span> об обращении с медицинскими <span class="removed">отходами&quot;[<sup>4].</sup></span></p></div>
+<div class="block removed" id="left-65" data-rel-index="17" data-jac="0.14285714285714285"><span class="stat-badge removed-badge">часть: 2</span><p class="para-text"><span class="removed">II. Порядок передачи сведений</span></p></div>
+<div class="block removed" id="left-66" data-rel-index="9" data-jac="0.184"><span class="stat-badge removed-badge">часть: 3</span><p class="para-text"><span class="removed">3. Передача сведений о массе образованных медицинских отходов по классам по форме Федерального статистического наблюдения &quot;Формы N 2-Медотходы &quot;Сведения об обращении с медицинскими отходами&quot; осуществляется юридическими лицами, гражданами, занимающимися предпринимательской деятельностью без образования юридического лица (индивидуальные предприниматели), осуществляющими деятельность в области обращения с медицинскими отходами, образующимися в процессе осуществления медицинской деятельности и фармацевтической деятельности, деятельности по производству лекарственных средств и медицинских изделий, деятельности в области использования возбудителей инфекционных заболеваний и генно-инженерно-модифицированных организмов в медицинских целях, а также при производстве, хранении биомедицинских клеточных продуктов (далее - респонденты) независимо от формы собственности и ведомственной принадлежности (организации, подведомственные Министерству здравоохранения Российской Федерации, Федеральной службе по надзору в сфере здравоохранения, Федеральной службе по надзору в сфере защиты прав потребителей и благополучия человека, Федеральному медико-биологическому агентству, Министерству обороны Российской Федерации, Министерству внутренних дел Российской Федерации, Федеральной службе исполнения наказаний, Главному управлению специальных программ Президента Российской Федерации, Управлению делами Президента Российской Федерации, Федеральной службе безопасности Российской Федерации, Федеральной службе охраны Российской Федерации, Федеральной службе войск национальной гвардии Российской Федерации, Службе внешней разведки Российской Федерации).</span></p></div>
+<div class="block removed" id="left-67" data-rel-index="43" data-jac="0.23529411764705882"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">4. Форма, подписанная руководителем подающей сведения организации, с печатью организации и дополнительно оформленным сопроводительным письмом, предоставляется на бумажном носителе в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор) в субъекте Российской Федерации ежегодно до 01 февраля следующего за отчетным периодом.</span></p></div>
+<div class="block removed" id="left-68" data-rel-index="39" data-jac="0.2972972972972973"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">В случаях, если масса медицинских отходов рассчитывалась с использованием определенной плотности медицинских отходов, в сопроводительном письме указывается используемая плотность для каждого класса медицинских отходов.</span></p></div>
+<div class="block removed" id="left-69" data-rel-index="10" data-jac="0.25"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">[<sup>1]:</sup> Федеральный закон от 21.11.2011 № 323-ФЗ &quot;Об основах охраны здоровья граждан в Российской Федерации&quot; (далее -- Федеральный закон от 21.11.2011 № 323-ФЗ).</span></p></div>
+<div class="block removed" id="left-70" data-rel-index="10" data-jac="0.15384615384615385"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">[<sup>2]:</sup> Постановление Правительства Российской Федерации от 04.07.2012 № 681 &quot;Об утверждении критериев разделения медицинских отходов на классы по степени их эпидемиологической, токсикологической, радиационной опасности, а также негативного воздействия на среду обитания&quot; (далее -- постановление Правительства Российской Федерации от 04.07.2012 № 681).</span></p></div>
+<div class="block removed" id="left-71" data-rel-index="14" data-jac="0.23684210526315788"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">[<sup>3]:</sup> Федеральный закон от 08.08.2024 № 306-ФЗ &quot;О внесении изменений в отдельные законодательные акты Российской Федерации&quot; (далее -- Федеральный закон от 08.08.2024 № 306-ФЗ);</span></p></div>
+<div class="block removed" id="left-72" data-rel-index="12" data-jac="0.15625"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">Федеральный закон от 24.06.1998 № 89-ФЗ &quot;Об отходах производства и потребления&quot; (далее -- Федеральный закон от 24.06.1998 № 89-ФЗ);</span></p></div>
+<div class="block removed" id="left-73" data-rel-index="2" data-jac="0.16666666666666666"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">Федеральный закон от 30.03.1999 № 52-ФЗ &quot;О санитарно-эпидемиологическом благополучии населения&quot; (далее -- Федеральный закон от 30.03.1999 № 52-ФЗ);</span></p></div>
+<div class="block removed" id="left-74" data-rel-index="10" data-jac="0.2222222222222222"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">Федеральный закон от 21.11.2011 № 323-ФЗ &quot;Об основах охраны здоровья граждан в Российской Федерации&quot; (далее -- Федеральный закон от 21.11.2011 № 323-ФЗ);</span></p></div>
+<div class="block removed" id="left-75" data-rel-index="" data-jac="0.0"><span class="stat-badge removed-badge">часть: 4</span><p class="para-text"><span class="removed">Глава X СанПиН 2.1.3684-21 &quot;Санитарно-эпидемиологические требования к содержанию территорий городских и сельских поселений, к водным объектам, питьевой воде и питьевому водоснабжению, атмосферному воздуху, почвам, жилым помещениям, эксплуатации производственных, общественных помещений, организации и проведению санитарно-противоэпидемических (профилактических) мероприятий&quot;, утвержденный постановлением Главного государственного санитарного врача Российской Федерации от 28.01.2021 № 3 (Зарегистрировано в Минюсте России 29.01.2021, регистрационный № 62297) (далее -- СанПиН 2.1.3684-21).</span></p></div>
+<div class="block removed" id="left-76" data-rel-index="42" data-jac="0.23529411764705882"><p class="para-text"><span class="removed">[<sup>4]:</sup> Приказ Росстата от 30.12.2022 № 993 &quot;Об утверждении формы федерального статистического наблюдения с указаниями по ее заполнению для организации Федеральной службой по надзору в сфере защиты прав потребителей и благополучия человека федерального статистического наблюдения за обращением с медицинскими отходами&quot; (далее -- Приказ Росстата от 30.12.2022 № 993).</span></p></div>
+  </div>
+  <div class="pane" id="right-pane">
+<div class="block unchanged" id="right-0" data-left-index="0" data-jac="1.0"><p class="para-text">ПРОЕКТ</p></div>
+<div class="block changed" id="right-1" data-left-index="4" data-jac="0.8214285714285714"><p class="para-text"><span class="added">Об</span> <span class="added">утверждении</span> <span class="added">Правил</span> учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор), и <span class="added">правил</span> информационного взаимодействия при передаче данных сведений</p></div>
+<div class="block changed" id="right-2" data-left-index="5" data-jac="0.56"><p class="para-text">В соответствии <span class="added">со</span> <span class="added">статьей</span> 22<sup>1</sup> Федерального закона &quot;О санитарно-эпидемиологическом благополучии населения&quot; Правительство Российской Федерации постановляет:</p></div>
+<div class="block changed" id="right-3" data-left-index="6" data-jac="0.6666666666666666"><span class="stat-badge">часть: 1</span><p class="para-text">1. Утвердить прилагаемые <span class="added">Правила.</span></p></div>
+<div class="block new-block" id="right-4" data-left-index="9" data-jac="0.2631578947368421"><span class="stat-badge new-badge">часть: 2</span><p class="para-text"><span class="added">2. Настоящее постановление вступает в силу с 1 сентября 2026 г. и действует до 1 сентября 2032 г.</span></p></div>
+<div class="block changed" id="right-5" data-left-index="2" data-jac="0.5"><span class="stat-badge">часть: 2</span><table class="md-table"><tr class="row-new" id="right-5-row-0"><th>Председатель Правительства Российской Федерации М.Мишустин</th><th>Председатель Правительства Российской Федерации</th><th></th><th>М.Мишустин</th><th></th><th>М.Мишустин</th><th></th></tr><tr class="row-new" id="right-5-row-1"><td>Председатель Правительства Российской Федерации</td><td></td><td>М.Мишустин</td></tr></table></div>
+<div class="block changed" id="right-6" data-left-index="11" data-jac="0.625"><span class="stat-badge">часть: 2</span><div class="blockquote"><div class="bq-line">УТВЕРЖДЕНЫ постановлением Правительства Российской Федерации <span class="added">от</span> <span class="added">2025</span> <span class="added">г.</span> <span class="added">№</span></div></div></div>
+<div class="block new-block" id="right-7" data-left-index="25" data-jac="0.13043478260869565"><span class="stat-badge new-badge">часть: 2</span><p class="para-text"><span class="added">П Р А В И Л А</span></p></div>
+<div class="block changed" id="right-8" data-left-index="4" data-jac="0.8846153846153846"><span class="stat-badge">часть: 2</span><p class="para-text">учета медицинских отходов, включая состав сведений, подлежащих передаче в федеральный орган исполнительной власти, осуществляющий федеральный государственный санитарно-эпидемиологический контроль (надзор), и <span class="added">правила</span> информационного взаимодействия при передаче данных сведений</p></div>
+<div class="block changed" id="right-9" data-left-index="15" data-jac="0.42857142857142855"><span class="stat-badge">часть: 1</span><p class="para-text">1. Настоящие Правила устанавливают порядок учета медицинских отходов, включая состав сведений, подлежащих передаче в <span class="added">Федеральную</span> <span class="added">службу</span> <span class="added">по</span> <span class="added">надзору</span> <span class="added">в</span> <span class="added">сфере</span> <span class="added">защиты</span> <span class="added">прав</span> <span class="added">потребителей</span> <span class="added">и</span> <span class="added">благополучия</span> <span class="added">человека,</span> <span class="added">и</span> <span class="added">порядок</span> <span class="added">информационного</span> <span class="added">взаимодействия</span> <span class="added">при</span> <span class="added">передаче</span> <span class="added">данных</span> <span class="added">сведений</span> в целях осуществления единого учета в области обращения с медицинскими отходами <span class="added">(далее</span> <span class="added">соответственно</span> <span class="added">--</span> <span class="added">учет,</span> <span class="added">передача</span> <span class="added">сведений).</span></p></div>
+<div class="block new-block" id="right-10" data-left-index="69" data-jac="0.25"><span class="stat-badge new-badge">часть: 2</span><p class="para-text"><span class="added">2. К медицинским отходам относятся отходы в соответствии с частью 1 статьи 49 Федерального закона &quot;Об основах охраны здоровья граждан в Российской Федерации&quot;, которые разделяются на классы медицинских отходов в соответствии с частью 2 статьи 49 Федерального закона &quot;Об основах охраны здоровья граждан в Российской Федерации&quot;.</span></p></div>
+<div class="block new-block" id="right-11" data-left-index="5" data-jac="0.203125"><span class="stat-badge new-badge">часть: 3</span><p class="para-text"><span class="added">3. Лица, обязанные в соответствии с пунктом 10
+статьи 22<sup>1</sup> Федерального закона &quot;О санитарно-эпидемиологическом благополучии населения&quot; осуществлять учет медицинских отходов (далее -- лица), учитывают количество накопленных, обеззараженных, транспортируемых медицинских отходов от места их образования к объектам, на которых осуществляется их обеззараживание и (или) обезвреживание, обезвреженных медицинских отходов до их передачи лицам, осуществляющим обращение с отходами производства и потребления либо национальному оператору по обращению с радиоактивными отходами.</span></p></div>
+<div class="block new-block" id="right-12" data-left-index="57" data-jac="0.20588235294117646"><span class="stat-badge new-badge">часть: 4</span><p class="para-text"><span class="added">4. Медицинские отходы класса &quot;А&quot; после передачи региональному оператору по обращению с твердыми коммунальными отходами подлежат учету согласно Федеральному закону &quot;Об отходах производства
+и потребления&quot;.</span></p></div>
+<div class="block new-block" id="right-13" data-left-index="57" data-jac="0.1794871794871795"><span class="stat-badge new-badge">часть: 5</span><p class="para-text"><span class="added">5. Медицинские отходы класса &quot;Г&quot;, подобные по составу чрезвычайно опасным и высокоопасным отходам, после передачи федеральному оператору по обращению с отходами I и II классов опасности подлежат учету согласно Федеральному закону &quot;Об отходах производства
+и потребления&quot;.</span></p></div>
+<div class="block new-block" id="right-14" data-left-index="71" data-jac="0.23684210526315788"><span class="stat-badge new-badge">часть: 6</span><p class="para-text"><span class="added">6. Медицинские отходы класса &quot;Д&quot; после передачи национальному оператору по обращению с радиоактивными отходами подлежат учету согласно Федеральному закону &quot;Об обращении с радиоактивными отходами и о внесении изменений в отдельные законодательные акты
+Российской Федерации&quot;.</span></p></div>
+<div class="block new-block" id="right-15" data-left-index="37" data-jac="0.25925925925925924"><span class="stat-badge new-badge">часть: 7</span><p class="para-text"><span class="added">7. Учет количества медицинских отходов классов &quot;А&quot;, &quot;Б&quot;, &quot;В&quot;, &quot;Г&quot;, &quot;Д&quot; осуществляется по массе, в тоннах.</span></p></div>
+<div class="block new-block" id="right-16" data-left-index="37" data-jac="0.26666666666666666"><span class="stat-badge new-badge">часть: 8</span><p class="para-text"><span class="added">8. Отчетным периодом для передачи сведений о количестве медицинских отходов классов &quot;А&quot;, &quot;Б&quot;, &quot;В&quot;, &quot;Г&quot;, &quot;Д&quot; является календарный год.</span></p></div>
+<div class="block unchanged" id="right-17" data-left-index="31" data-jac="1.0"><p class="para-text">9. Состав сведений, подлежащих передаче, включает:</p></div>
+<div class="block changed" id="right-18" data-left-index="32" data-jac="0.75"><span class="stat-badge">часть: 9,
+подпункт: а</span><p class="para-text"><span class="added">а)</span> класс медицинских отходов;</p></div>
+<div class="block changed" id="right-19" data-left-index="33" data-jac="0.4166666666666667"><span class="stat-badge">часть: 9,
+подпункт: б</span><p class="para-text"><span class="added">б)</span> <span class="added">количество</span> медицинских отходов на начало <span class="added">календарного</span> года <span class="added">по</span> <span class="added">каждому</span> <span class="added">классу;</span></p></div>
+<div class="block changed" id="right-20" data-left-index="34" data-jac="0.6363636363636364"><span class="stat-badge">часть: 9,
+подпункт: в</span><p class="para-text"><span class="added">в)</span> количество образованных медицинских отходов за отчетный период <span class="added">по</span> <span class="added">каждому</span> <span class="added">классу;</span></p></div>
+<div class="block changed" id="right-21" data-left-index="35" data-jac="0.45454545454545453"><span class="stat-badge">часть: 9,
+подпункт: г</span><p class="para-text"><span class="added">г)</span> количество медицинских отходов, <span class="added">принятых</span> от других хозяйствующих субъектов за отчетный период <span class="added">по</span> <span class="added">каждому</span> <span class="added">классу;</span></p></div>
+<div class="block changed" id="right-22" data-left-index="36" data-jac="0.6153846153846154"><span class="stat-badge">часть: 9,
+подпункт: д</span><p class="para-text"><span class="added">д)</span> количество медицинских отходов <span class="added">классов</span> <span class="added">&quot;Б&quot;,</span> <span class="added">&quot;В&quot;,</span> <span class="added">&quot;Г&quot;,</span> обезвреженных (обеззараженных) за отчетный период;</p></div>
+<div class="block new-block" id="right-23" data-left-index="37" data-jac="0.23076923076923078"><span class="stat-badge new-badge">часть: 9,
+подпункт: е</span><p class="para-text"><span class="added">е) количество медицинских отходов, переданных для последующего обращения с ними в соответствии с классом медицинских отходов;</span></p></div>
+<div class="block changed" id="right-24" data-left-index="38" data-jac="0.6363636363636364"><span class="stat-badge">часть: 9,
+подпункт: ж</span><p class="para-text"><span class="added">ж)</span> остаток медицинских отходов <span class="added">по</span> <span class="added">каждому</span> <span class="added">классу</span> на конец отчетного периода.</p></div>
+<div class="block new-block" id="right-25" data-left-index="37" data-jac="0.2692307692307692"><span class="stat-badge new-badge">часть: 10</span><p class="para-text"><span class="added">10. Определение массы медицинских отходов классов &quot;А&quot;, &quot;Б&quot;, &quot;В&quot;, &quot;Г&quot;, &quot;Д&quot; осуществляется следующими способами:</span></p></div>
+<div class="block changed" id="right-26" data-left-index="40" data-jac="0.6666666666666666"><span class="stat-badge">часть: 10,
+подпункт: а</span><p class="para-text">а) <span class="added">определение</span> количества и объема контейнеров и (или) бункеров для накопления медицинских отходов <span class="added">по</span> <span class="added">классам</span> <span class="added">&quot;А&quot;,</span> <span class="added">&quot;Б&quot;,</span> <span class="added">&quot;В&quot;,</span> <span class="added">&quot;Г&quot;,</span> <span class="added">&quot;Д&quot;,</span> установленных в местах накопления медицинских отходов, в которых осуществляется сбор и накопление медицинских отходов, в показателях объема с учетом графика опорожнения <span class="added">контейнеров</span> <span class="added">и</span> <span class="added">(или)</span> <span class="added">бункеров,</span> а также средней плотности медицинских отходов, <span class="added">самостоятельно</span> <span class="added">определяемой</span> <span class="added">лицами,</span> <span class="added">обязанными</span> <span class="added">осуществлять</span> <span class="added">учет</span> <span class="added">медицинских</span> <span class="added">отходов;</span></p></div>
+<div class="block changed" id="right-27" data-left-index="42" data-jac="0.5"><span class="stat-badge">часть: 10,
+подпункт: б</span><p class="para-text">б) <span class="added">определение</span> массы медицинских отходов <span class="added">классов</span> <span class="added">&quot;А&quot;,</span> <span class="added">&quot;Б&quot;,</span> <span class="added">&quot;В&quot;,</span> <span class="added">&quot;Г&quot;,</span> <span class="added">&quot;Д&quot;</span> с использованием средств измерения (весы).</p></div>
+<div class="block new-block" id="right-28" data-left-index="43" data-jac="0.3125"><span class="stat-badge new-badge">часть: 11</span><p class="para-text"><span class="added">11. В случае применения способа, предусмотренного подпунктом &quot;а&quot; пункта 10 настоящих Правил, определение количества медицинских отходов по классам медицинских отходов &quot;А&quot;, &quot;Б&quot;, &quot;В&quot;, &quot;Г&quot;, &quot;Д&quot; осуществляется в показателях массы (M) по формуле:</span></p></div>
+<div class="block new-block" id="right-29" data-left-index="" data-jac="0.0"><span class="stat-badge new-badge">часть: 11</span><p class="para-text"><span class="added">$$M = V \times \rho$$,</span></p></div>
+<div class="block changed" id="right-30" data-left-index="45" data-jac="0.7142857142857143"><span class="stat-badge">часть: 11</span><p class="para-text">где: M масса (кг) -- масса медицинских отходов <span class="added">по</span> <span class="added">классам;</span></p></div>
+<div class="block changed" id="right-31" data-left-index="46" data-jac="0.6666666666666666"><span class="stat-badge">часть: 11</span><p class="para-text">V объем (м<sup>3</sup>) -- объем контейнера <span class="added">и</span> <span class="added">(или)</span> бункера;</p></div>
+<div class="block changed" id="right-32" data-left-index="47" data-jac="0.6"><span class="stat-badge">часть: 11</span><p class="para-text">ρ -- плотность медицинских отходов <span class="added">по</span> <span class="added">классам.</span></p></div>
+<div class="block new-block" id="right-33" data-left-index="34" data-jac="0.22727272727272727"><span class="stat-badge new-badge">часть: 11</span><p class="para-text"><span class="added">Общая масса за отчетный период рассчитывается путем умножения массы содержимого одного контейнера и (или) бункера на количество его наполнений за отчетный период.</span></p></div>
+<div class="block new-block" id="right-34" data-left-index="50" data-jac="0.2647058823529412"><span class="stat-badge new-badge">часть: 11</span><p class="para-text"><span class="added">Плотность медицинских отходов каждого класса рассчитывается путем определения объема и массы отходов каждого класса по формуле:</span></p></div>
+<div class="block new-block" id="right-35" data-left-index="" data-jac="0.0"><span class="stat-badge new-badge">часть: 11</span><p class="para-text"><span class="added">$$\rho = \frac{M}{V}$$ ,</span></p></div>
+<div class="block changed" id="right-36" data-left-index="52" data-jac="0.6666666666666666"><span class="stat-badge">часть: 11</span><p class="para-text">где: ρ -- плотность медицинских отходов <span class="added">по</span> <span class="added">классам;</span></p></div>
+<div class="block changed" id="right-37" data-left-index="53" data-jac="0.6666666666666666"><span class="stat-badge">часть: 11</span><p class="para-text">M масса (кг) -- масса медицинских отходов <span class="added">по</span> <span class="added">классам;</span></p></div>
+<div class="block unchanged" id="right-38" data-left-index="46" data-jac="1.0"><p class="para-text">V объем (м<sup>3</sup>) -- объем контейнера, бункера.</p></div>
+<div class="block changed" id="right-39" data-left-index="55" data-jac="0.3783783783783784"><span class="stat-badge">часть: 11</span><p class="para-text">Рассчитанный показатель плотности может быть использован при последующих расчетах для перевода объема <span class="added">медицинских</span> <span class="added">отходов</span> в массу. <span class="added">При</span> <span class="added">передаче</span> <span class="added">сведений</span> <span class="added">в</span> <span class="added">соответствии</span> <span class="added">с</span> <span class="added">пунктом</span> <span class="added">13</span> <span class="added">настоящих</span> <span class="added">Правил</span> <span class="added">в</span> <span class="added">сопроводительном</span> <span class="added">письме</span> <span class="added">указывается</span> <span class="added">рассчитанный</span> <span class="added">показатель</span> <span class="added">плотности</span> <span class="added">для</span> <span class="added">медицинских</span> <span class="added">отходов</span> <span class="added">каждого</span> <span class="added">класса.</span></p></div>
+<div class="block new-block" id="right-40" data-left-index="56" data-jac="0.3333333333333333"><span class="stat-badge new-badge">часть: 12</span><p class="para-text"><span class="added">12. В случае применения способа, предусмотренного подпунктом &quot;б&quot; пункта 10 настоящих Правил, определение массы медицинских отходов каждого класса осуществляется путем фактического измерения массы медицинских отходов (с помощью средств измерения массы).</span></p></div>
+<div class="block changed" id="right-41" data-left-index="64" data-jac="0.59375"><span class="stat-badge">часть: 13</span><p class="para-text"><span class="added">13.</span> Передача сведений о массе медицинских отходов по <span class="added">каждому</span> <span class="added">классу</span> осуществляется путем заполнения формы федерального статистического наблюдения, <span class="added">предназначенной</span> <span class="added">для</span> <span class="added">формирования</span> <span class="added">официальной</span> <span class="added">статистической</span> <span class="added">информации</span> об обращении с медицинскими <span class="added">отходами.</span></p></div>
+<div class="block new-block" id="right-42" data-left-index="76" data-jac="0.23529411764705882"><span class="stat-badge new-badge">часть: 14</span><p class="para-text"><span class="added">14. Информационное взаимодействие осуществляется между лицами, указанными в пункте 3 настоящих Правил и Федеральной службой по надзору в сфере защиты прав потребителей и благополучия человека по соответствующему субъекту Российской Федерации.</span></p></div>
+<div class="block new-block" id="right-43" data-left-index="67" data-jac="0.23529411764705882"><span class="stat-badge new-badge">часть: 15</span><p class="para-text"><span class="added">15. Заполненная и подписанная форма, указанная в пункте 13 настоящих Правил, ежегодно до 1 февраля года, следующего за отчетным, направляется лицами, указанными в пункте 3 настоящих Правил, сопроводительным письмом на бумажном носителе или в электронной форме (при наличии технической возможности) в территориальный орган Федеральной службы по надзору в сфере защиты прав потребителей и благополучия человека.</span></p></div>
+<div class="block new-block" id="right-44" data-left-index="4" data-jac="0.12727272727272726"><p class="para-text"><span class="added">16. Информационное взаимодействие при передаче сведений осуществляется на основе принципов обеспечения полноты
+и достоверности информации, предоставляемой и получаемой в рамках информационного взаимодействия, а также обеспечения конфиденциальности информации, доступ к которой ограничен законодательством Российской Федерации, любым доступным способом, позволяющим обеспечить учет соответствующих сведений.</span></p></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const LP = document.getElementById('left-pane');
+  const RP = document.getElementById('right-pane');
+  let activePane = null;
+
+  LP.addEventListener('mouseenter', () => { activePane = 'left';  });
+  LP.addEventListener('mouseleave', () => { if (activePane === 'left')  activePane = null; });
+  RP.addEventListener('mouseenter', () => { activePane = 'right'; });
+  RP.addEventListener('mouseleave', () => { if (activePane === 'right') activePane = null; });
+
+  const RB = [...RP.querySelectorAll('.block[data-left-index]')];
+  const LB = [...LP.querySelectorAll('.block[data-rel-index]')];
+  let syncing = false;
+
+  function syncOpposite(srcPane, dstPane, blocks, attr, prefix) {
+    if (syncing) return; syncing = true;
+    const st = srcPane.getBoundingClientRect().top;
+    const sh = srcPane.clientHeight;
+    let best = null, bestV = -Infinity;
+    for (const b of blocks) {
+      const r = b.getBoundingClientRect();
+      const v = Math.min(r.bottom, st + sh) - Math.max(r.top, st);
+      if (v > bestV) { bestV = v; best = b; }
+    }
+    if (best) {
+      const blockIdx = best.getAttribute(attr);
+      if (blockIdx !== '' && blockIdx !== null) {
+        const dstBlock = document.getElementById(prefix + blockIdx);
+        if (dstBlock) {
+          // Check if source block contains a table — sync row-by-row
+          const srcTable = best.querySelector('table');
+          const dstTable = dstBlock.querySelector('table');
+          if (srcTable && dstTable) {
+            // Find most visible row in src table
+            const srcRows = [...srcTable.querySelectorAll('tr[id]')];
+            let bestRow = null, bestRV = -Infinity;
+            for (const row of srcRows) {
+              const rr = row.getBoundingClientRect();
+              const rv = Math.min(rr.bottom, st + sh) - Math.max(rr.top, st);
+              if (rv > bestRV) { bestRV = rv; bestRow = row; }
+            }
+            if (bestRow) {
+              const m = bestRow.id.match(/-row-(\d+)$/);
+              if (m) {
+                const peerRow = document.getElementById(prefix + blockIdx + '-row-' + m[1]);
+                if (peerRow) {
+                  const tableTop = dstTable.offsetTop;
+                  dstPane.scrollTop = dstBlock.offsetTop + tableTop + peerRow.offsetTop
+                                      - dstPane.clientHeight / 2 + peerRow.offsetHeight / 2;
+                  requestAnimationFrame(() => { syncing = false; });
+                  return;
+                }
+              }
+            }
+          }
+          // Default: align block centre
+          dstPane.scrollTop = dstBlock.offsetTop - dstPane.clientHeight/2 + dstBlock.clientHeight/2;
+        }
+      }
+    }
+    requestAnimationFrame(() => { syncing = false; });
+  }
+
+  LP.addEventListener('scroll', () => { if (activePane === 'left')  syncOpposite(LP, RP, LB, 'data-rel-index',  'right-'); });
+  RP.addEventListener('scroll', () => { if (activePane === 'right') syncOpposite(RP, LP, RB, 'data-left-index', 'left-');  });
+
+  /* Click highlight */
+  function clearHL() { document.querySelectorAll('.block.highlighted').forEach(b => b.classList.remove('highlighted')); }
+  function hasPeer(b) { return parseFloat(b.getAttribute('data-jac') || 0) > 0.35; }
+
+  function scrollToBlock(pane, block) {
+    // Scroll pane so block is centred vertically
+    pane.scrollTop = block.offsetTop - pane.clientHeight / 2 + block.offsetHeight / 2;
+  }
+
+  LP.addEventListener('click', e => {
+    const b = e.target.closest('.block'); if (!b) return;
+    clearHL(); b.classList.add('highlighted');
+    if (hasPeer(b)) {
+      const i = b.getAttribute('data-rel-index');
+      if (i) {
+        const p = document.getElementById('right-' + i);
+        if (p) { p.classList.add('highlighted'); scrollToBlock(RP, p); }
+      }
+    }
+  });
+  RP.addEventListener('click', e => {
+    const b = e.target.closest('.block'); if (!b) return;
+    clearHL(); b.classList.add('highlighted');
+    if (hasPeer(b)) {
+      const i = b.getAttribute('data-left-index');
+      if (i) {
+        const p = document.getElementById('left-' + i);
+        if (p) { p.classList.add('highlighted'); scrollToBlock(LP, p); }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
